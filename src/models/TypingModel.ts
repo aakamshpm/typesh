@@ -33,3 +33,18 @@ export interface ErrorPattern {
   positiona: number[];
   commonMistakes: string[]; // misspelled character
 }
+
+export interface CustomParagraph {
+  id: string;
+  title: string;
+  content: string;
+  dateAdded: Date;
+  difficulty?: "ease" | "medium" | "hard";
+  category?: string;
+}
+
+export interface ExtensionSettings {
+  defaultTimer: number;
+  showRealTimeStats: boolean;
+  theme: "light" | "dark" | "auto";
+}
