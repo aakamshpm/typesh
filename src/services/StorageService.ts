@@ -11,6 +11,8 @@ export class StorageService {
 
   constructor(private context: vscode.ExtensionContext) {}
 
+  // Session Management //
+
   public async saveSession(session: TypingSession): Promise<void> {
     try {
       const sessions = await this.getAllSessions();
@@ -30,5 +32,22 @@ export class StorageService {
 
   public async getAllSessions(): Promise<TypingSession[]> {
     return this.context.globalState.get(StorageService.KEYS.SESSIONS, []);
+  }
+
+  // TODO: check for better error handling if needed
+  public async getSessionById(id: string): Promise<TypingSession | undefined> {
+    const sessions = await this.getAllSessions();
+    return sessions.find((s) => s.id === id);
+  }
+
+  public async deleteSessionById(id: string): Promise<void> {
+    const sessions = await this.getAllSessions();
+
+    const filteredSessions = sessions.filter((s) => s.id !== id);
+
+    this.context.globalState.get(
+      StorageService.KEYS.SESSIONS,
+      filteredSessions
+    );
   }
 }
