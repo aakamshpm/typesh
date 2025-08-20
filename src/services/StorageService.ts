@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { TypingSession } from "../models/TypingModel";
+import { CustomParagraph, TypingSession } from "../models/TypingModel";
 
 export class StorageService {
   private static readonly KEYS = {
@@ -47,7 +47,6 @@ export class StorageService {
     }
   }
 
-  // TODO: check for better error handling if needed
   public async getSessionById(id: string): Promise<TypingSession | undefined> {
     try {
       this.validateSessionId(id);
@@ -77,7 +76,7 @@ export class StorageService {
 
       return true;
     } catch (error) {
-      vscode.window.showErrorMessage(`  Failed to delete session: ${error}`);
+      vscode.window.showErrorMessage(`Failed to delete session: ${error}`);
       return false;
     }
   }
@@ -92,5 +91,19 @@ export class StorageService {
 
     if (!session.id || typeof session.id !== "string")
       throw new Error("Session must have valid ID");
+  }
+
+  // Paragraph management //
+  public async getAllParagraphs(): Promise<CustomParagraph[]> {
+    try {
+      const paragraphs = this.context.globalState.get(
+        StorageService.KEYS.PARAGRAPHS,
+        []
+      );
+      return Array.isArray(paragraphs) ? paragraphs : [];
+    } catch (error) {
+      vscode.window.showErrorMessage(`Failed to retreive paragraphs: ${error}`);
+      return [];
+    }
   }
 }
