@@ -15,6 +15,8 @@ export class StorageService {
 
   public async saveSession(session: TypingSession): Promise<void> {
     try {
+      this.validateSession(session);
+
       const sessions = await this.getAllSessions();
       sessions.push(session);
 
@@ -57,15 +59,27 @@ export class StorageService {
     }
   }
 
-  public async deleteSessionById(id: string): Promise<void> {
-    const sessions = await this.getAllSessions();
+  public async deleteSessionById(id: string): Promise<boolean> {
+    try {
+      this.validateSessionId(id);
 
-    const filteredSessions = sessions.filter((s) => s.id !== id);
+      const sessions = await this.getAllSessions();
+      const initialLength = sessions.length;
 
-    this.context.globalState.update(
-      StorageService.KEYS.SESSIONS,
-      filteredSessions
-    );
+      const filteredSessions = sessions.filter((s) => s.id !== id);
+
+      if (filteredSessions.length === initialLength) return false; // Session with the ID provided was not found and deleted
+
+      await this.context.globalState.update(
+        StorageService.KEYS.SESSIONS,
+        filteredSessions
+      );
+
+      return true;
+    } catch (error) {
+      vscode.window.showErrorMessage(`  Failed to delete session: ${error}`);
+      return false;
+    }
   }
 
   private validateSessionId(id: string): void {
