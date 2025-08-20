@@ -45,9 +45,21 @@ export class StorageService {
 
     const filteredSessions = sessions.filter((s) => s.id !== id);
 
-    this.context.globalState.get(
+    this.context.globalState.update(
       StorageService.KEYS.SESSIONS,
       filteredSessions
     );
+  }
+
+  private validateSessionId(id: string): void {
+    if (!id || typeof id !== "string" || id.trim() === "")
+      throw new Error("Session ID must be non-empty string");
+  }
+
+  private validateSession(session: TypingSession): void {
+    if (!session) throw new Error("Session cannot be null or undefined");
+
+    if (!session.id || typeof session.id !== "string")
+      throw new Error("Session must have valid ID");
   }
 }
