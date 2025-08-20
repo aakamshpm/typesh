@@ -31,13 +31,30 @@ export class StorageService {
   }
 
   public async getAllSessions(): Promise<TypingSession[]> {
-    return this.context.globalState.get(StorageService.KEYS.SESSIONS, []);
+    try {
+      const sessions = this.context.globalState.get(
+        StorageService.KEYS.SESSIONS,
+        []
+      );
+      return Array.isArray(sessions) ? sessions : [];
+    } catch (error) {
+      vscode.window.showErrorMessage(
+        `Failed to retrieve typing sessions:${error} `
+      );
+      return [];
+    }
   }
 
   // TODO: check for better error handling if needed
   public async getSessionById(id: string): Promise<TypingSession | undefined> {
-    const sessions = await this.getAllSessions();
-    return sessions.find((s) => s.id === id);
+    try {
+      this.validateSessionId(id);
+      const sessions = await this.getAllSessions();
+      return sessions.find((s) => s.id === id);
+    } catch (error) {
+      vscode.window.showErrorMessage(`Failed to retrieve session: ${error}`);
+      return undefined;
+    }
   }
 
   public async deleteSessionById(id: string): Promise<void> {
