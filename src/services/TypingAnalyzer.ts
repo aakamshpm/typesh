@@ -1,4 +1,11 @@
 export class TypingAnalyzer {
+  private static calculateCorrectChars(target: string, input: string): number {
+    const editDistance = this.levenshteinDistance(target, input);
+
+    const correctedChars = target.length - editDistance;
+    return correctedChars;
+  }
+
   private static levenshteinDistance(target: string, input: string): number {
     const targetLen = target.length;
     const inputLen = input.length;
