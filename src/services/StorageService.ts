@@ -1,5 +1,9 @@
 import * as vscode from "vscode";
-import { CustomParagraph, TypingSession } from "../models/TypingModel";
+import {
+  CustomParagraph,
+  ExtensionSettings,
+  TypingSession,
+} from "../models/TypingModel";
 
 export class StorageService {
   private static readonly KEYS = {
@@ -136,6 +140,109 @@ export class StorageService {
       return true;
     } catch (error) {
       vscode.window.showErrorMessage(`Failed to delete paragraph: ${error}`);
+      return false;
+    }
+  }
+
+  // Settings Management //
+  public async saveSettings(settings: ExtensionSettings): Promise<void> {
+    try {
+      if (!settings) throw new Error("Settings canont be null");
+
+      if (!this.validateSettings(settings))
+        throw new Error("Invalid settings provided");
+
+      await this.context.globalState.update(
+        StorageService.KEYS.SETTINGS,
+        settings
+      );
+    } catch (error) {
+      vscode.window.showErrorMessage(`Failed to save settings: ${error}`);
+      throw error;
+    }
+  }
+
+  public async getSettings(): Promise<ExtensionSettings> {
+    try {
+      const storedSettings = this.context.globalState.get(
+        StorageService.KEYS.SETTINGS,
+        []
+      );
+
+      if (!storedSettings) return this.createDefaultSettings();
+
+      if (this.validateSettings(storedSettings)) return storedSettings;
+
+      console.warn("Storage settings are invalid, using defaults");
+      vscode.window.showErrorMessage(
+        "Setting were corrupted and hae been reset to defaults"
+      );
+
+      const defaultSettings = this.createDefaultSettings();
+      await this.saveSettings(defaultSettings);
+
+      return defaultSettings;
+    } catch (error) {
+      vscode.window.showErrorMessage(`Failed to get settings: ${error}`);
+      return this.createDefaultSettings();
+    }
+  }
+
+  public async updateSettings(
+    settings: Partial<ExtensionSettings>
+  ): Promise<void> {
+    const currentSettings = await this.getSettings();
+    const updatedSettings = { ...currentSettings, ...settings };
+
+    await this.context.globalState.update(
+      StorageService.KEYS.SETTINGS,
+      updatedSettings
+    );
+  }
+
+  private createDefaultSettings(): ExtensionSettings {
+    return {
+      defaultTimer: 60,
+      showRealTimeStats: true,
+      theme: "auto",
+    };
+  }
+
+  private validateSettings(settings: any): settings is ExtensionSettings {
+    if (!settings || typeof settings !== "object") {
+      return false;
+    }
+
+    // Check required properties and their types
+    if (
+      typeof settings.defaultTimer !== "number" ||
+      settings.defaultTimer <= 0
+    ) {
+      return false;
+    }
+
+    if (typeof settings.showRealTimeStats !== "boolean") {
+      return false;
+    }
+
+    if (!["light", "dark", "auto"].includes(settings.theme)) {
+      return false;
+    }
+
+    return true;
+  }
+
+  public async resetSettings(): Promise<boolean> {
+    try {
+      const defaultSettings = this.createDefaultSettings();
+      await this.saveSettings(defaultSettings);
+
+      vscode.window.showInformationMessage(
+        "Settings have been reset to defaults"
+      );
+      return true;
+    } catch (error) {
+      vscode.window.showErrorMessage(`Failed to reset settings: ${error}`);
       return false;
     }
   }
