@@ -94,7 +94,7 @@ export class StorageService {
   }
 
   // Paragraph management //
-  public async getAllParagraphs(): Promise<CustomParagraph[]> {
+  public async getCustomParagraphs(): Promise<CustomParagraph[]> {
     try {
       const paragraphs = this.context.globalState.get(
         StorageService.KEYS.PARAGRAPHS,
@@ -104,6 +104,39 @@ export class StorageService {
     } catch (error) {
       vscode.window.showErrorMessage(`Failed to retreive paragraphs: ${error}`);
       return [];
+    }
+  }
+
+  public async saveCustomParagraph(paragraph: CustomParagraph): Promise<void> {
+    try {
+      const paragraphs = await this.getCustomParagraphs();
+      paragraphs.push(paragraph);
+      await this.context.globalState.update(
+        StorageService.KEYS.PARAGRAPHS,
+        paragraphs
+      );
+    } catch (error) {
+      vscode.window.showErrorMessage(`Failed to save paragraph: ${error}`);
+      throw error;
+    }
+  }
+
+  public async deleteCustomParagraph(id: string): Promise<boolean> {
+    try {
+      if (!id || typeof id !== "string" || id.trim() === "")
+        throw new Error("Paragraph ID cannot be empty");
+
+      const paragraphs = await this.getCustomParagraphs();
+      const initialLength = paragraphs.length;
+
+      const filteredParagraphs = paragraphs.filter((p) => p.id !== id);
+
+      if (filteredParagraphs.length === initialLength) return false;
+
+      return true;
+    } catch (error) {
+      vscode.window.showErrorMessage(`Failed to delete paragraph: ${error}`);
+      return false;
     }
   }
 }
