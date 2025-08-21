@@ -39,7 +39,7 @@ export interface CustomParagraph {
   title: string;
   content: string;
   dateAdded: Date;
-  difficulty?: "ease" | "medium" | "hard";
+  difficulty?: "easy" | "medium" | "hard";
   category?: string;
 }
 

@@ -246,4 +246,51 @@ export class StorageService {
       return false;
     }
   }
+
+  // Initialuize default paragraphs (call once on first run)
+  public async initializeDefaultParagraphs(): Promise<void> {
+    const isFirstRun = this.context.globalState.get("isFirstRun", true);
+
+    if (isFirstRun) {
+      const defaultParagraphs = this.getDefaultParagraphs();
+
+      await this.context.globalState.update(
+        StorageService.KEYS.DEFAULT_PARAGRAPHS,
+        defaultParagraphs
+      );
+      await this.context.globalState.update("isFirstRun", false);
+    }
+  }
+
+  private getDefaultParagraphs(): CustomParagraph[] {
+    return [
+      {
+        id: "default-1",
+        title: "Basic English",
+        content:
+          "The quick brown fox jumps over the lazy dog. This pangram contains all letters of the alphabet and is commonly used for typing practice.",
+        dateAdded: new Date(),
+        difficulty: "easy",
+        category: "Basic",
+      },
+      {
+        id: "default-2",
+        title: "Programming Concepts",
+        content:
+          "function calculateTypingSpeed(startTime, endTime, correctChars) { const timeInMinutes = (endTime - startTime) / 60000; return Math.round(correctChars / 5 / timeInMinutes); }",
+        dateAdded: new Date(),
+        difficulty: "medium",
+        category: "Programming",
+      },
+      {
+        id: "default-3",
+        title: "Advanced Text",
+        content:
+          "In the realm of software development, precision and speed are paramount. Developers must maintain accuracy while implementing complex algorithms, debugging intricate issues, and collaborating with diverse teams.",
+        dateAdded: new Date(),
+        difficulty: "hard",
+        category: "Professional",
+      },
+    ];
+  }
 }
