@@ -113,8 +113,18 @@ export class StorageService {
 
   public async saveCustomParagraph(paragraph: CustomParagraph): Promise<void> {
     try {
+      if (!this.validateParagraph(paragraph)) {
+        throw new Error("Invalid paragraph data");
+      }
+
       const paragraphs = await this.getCustomParagraphs();
-      paragraphs.push(paragraph);
+      const existingIndex = paragraphs.findIndex((p) => p.id === paragraph.id);
+
+      if (existingIndex >= 0) {
+        paragraphs[existingIndex] = paragraph; // Update existing
+      } else {
+        paragraphs.push(paragraph); // Add new
+      }
       await this.context.globalState.update(
         StorageService.KEYS.PARAGRAPHS,
         paragraphs
@@ -142,6 +152,33 @@ export class StorageService {
       vscode.window.showErrorMessage(`Failed to delete paragraph: ${error}`);
       return false;
     }
+  }
+
+  private validateParagraph(paragraph: any): paragraph is CustomParagraph {
+    if (!paragraph || typeof paragraph !== "object") {
+      return false;
+    }
+
+    if (!paragraph.id || typeof paragraph.id !== "string") {
+      return false;
+    }
+
+    if (!paragraph.title || typeof paragraph.title !== "string") {
+      return false;
+    }
+
+    if (!paragraph.content || typeof paragraph.content !== "string") {
+      return false;
+    }
+
+    if (
+      paragraph.difficulty &&
+      !["easy", "medium", "hard"].includes(paragraph.difficulty)
+    ) {
+      return false;
+    }
+
+    return true;
   }
 
   // Settings Management //
@@ -247,11 +284,15 @@ export class StorageService {
     }
   }
 
-  // Initialuize default paragraphs (call once on first run)
-  public async initializeDefaultParagraphs(): Promise<void> {
-    const isFirstRun = this.context.globalState.get("isFirstRun", true);
+  // Initialize default paragraphs (call once on first run)
+  public async initializeDefaultParagraphs(): Promise<boolean> {
+    try {
+      const isFirstRun = this.context.globalState.get("isFirstRun", true);
 
-    if (isFirstRun) {
+      if (!isFirstRun) {
+        return false;
+      }
+
       const defaultParagraphs = this.getDefaultParagraphs();
 
       await this.context.globalState.update(
@@ -259,17 +300,28 @@ export class StorageService {
         defaultParagraphs
       );
       await this.context.globalState.update("isFirstRun", false);
+
+      vscode.window.showInformationMessage(
+        "Default paragraphs initialized successfully"
+      );
+      return true;
+    } catch (error) {
+      vscode.window.showErrorMessage(
+        `Failed to initialize default paragraphs: ${error}`
+      );
+      return false;
     }
   }
 
   private getDefaultParagraphs(): CustomParagraph[] {
+    const now = new Date().toISOString();
     return [
       {
         id: "default-1",
         title: "Basic English",
         content:
           "The quick brown fox jumps over the lazy dog. This pangram contains all letters of the alphabet and is commonly used for typing practice.",
-        dateAdded: new Date(),
+        dateAdded: new Date(now),
         difficulty: "easy",
         category: "Basic",
       },
@@ -278,7 +330,7 @@ export class StorageService {
         title: "Programming Concepts",
         content:
           "function calculateTypingSpeed(startTime, endTime, correctChars) { const timeInMinutes = (endTime - startTime) / 60000; return Math.round(correctChars / 5 / timeInMinutes); }",
-        dateAdded: new Date(),
+        dateAdded: new Date(now),
         difficulty: "medium",
         category: "Programming",
       },
@@ -287,7 +339,7 @@ export class StorageService {
         title: "Advanced Text",
         content:
           "In the realm of software development, precision and speed are paramount. Developers must maintain accuracy while implementing complex algorithms, debugging intricate issues, and collaborating with diverse teams.",
-        dateAdded: new Date(),
+        dateAdded: new Date(now),
         difficulty: "hard",
         category: "Professional",
       },
