@@ -19,6 +19,7 @@ export interface Keystroke {
 
 export interface TypingStats {
   wpm: number;
+  grossWPM: number;
   accuracy: number;
   errorCount: number;
   correctChars: number;

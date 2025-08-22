@@ -1,8 +1,41 @@
+import { TypingSession, TypingStats } from "../models/TypingModel";
+
 export class TypingAnalyzer {
+  public static analyzeSession(session: TypingSession): TypingStats {
+    const { keystrokes, targetText, userInput, startTime, endTime } = session;
+
+    const totalChars = userInput.length;
+    const correctChars = this.calculateCorrectChars(targetText, userInput);
+    const errorCount = this.levenshteinDistance(targetText, userInput);
+    const accuracy = totalChars > 0 ? (correctChars / totalChars) * 100 : 0;
+
+    const timeInMinutes = (endTime.getTime() - startTime.getTime()) / 60000;
+    const wpm = this.calculateWPM(correctChars, timeInMinutes);
+    const grossWPM = this.calculateGrossWPM(totalChars, timeInMinutes);
+
+    const consistencyScore = this.calculateConsistencyScore(keystrokes);
+    const errorPatterns = this.analyzeErrorPatterns(
+      targetText,
+      userInput,
+      keystrokes
+    );
+
+    return {
+      wpm,
+      grossWPM, // <-- Add this new field
+      accuracy: Math.round(accuracy * 100) / 100,
+      errorCount,
+      correctChars,
+      totalChars,
+      consistencyScore,
+      errorPatterns,
+    };
+  }
+
   private static calculateCorrectChars(target: string, input: string): number {
     const editDistance = this.levenshteinDistance(target, input);
 
-    const correctedChars = target.length - editDistance;
+    const correctedChars = Math.max(0, target.length - editDistance);
     return correctedChars;
   }
 
@@ -26,7 +59,7 @@ export class TypingAnalyzer {
 
     // Fill the rest of the matrix
     for (let i = 1; i <= targetLen; i++) {
-      for (let j = 1; j < inputLen; j++) {
+      for (let j = 1; j <= inputLen; j++) {
         const substitutionCost = target[i - 1] === input[j - 1] ? 0 : 1;
 
         matrix[i][j] = Math.min(
@@ -38,5 +71,25 @@ export class TypingAnalyzer {
     }
 
     return matrix[targetLen][inputLen];
+  }
+
+  private static calculateWPM(
+    correctedChars: number,
+    timeInMinutes: number
+  ): number {
+    if (timeInMinutes <= 0) return 0;
+
+    const words = correctedChars / 5;
+    return Math.round(words / timeInMinutes);
+  }
+
+  private static calculateGrossWPM(
+    totalChars: number,
+    timeInMinutes: number
+  ): number {
+    if (timeInMinutes <= 0) return 0;
+
+    const words = totalChars / 5;
+    return Math.round(words / timeInMinutes);
   }
 }
