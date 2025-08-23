@@ -100,6 +100,43 @@ export class TypingAnalyzer {
 
   private static calculateConsistencyScore(keystrokes: Keystroke[]): number {
     if (keystrokes.length < 5) return 100;
+
+    const intervals = keystrokes
+      .slice(1)
+      .map((stroke) => stroke.timeSinceLast)
+      .filter((interval) => interval > 0);
+
+    if (intervals.length === 0) return 100;
+
+    const sortedIntervals = [...intervals].sort((a, b) => a - b);
+    const q1 = sortedIntervals[Math.floor(sortedIntervals.length * 0.25)];
+    const q3 = sortedIntervals[Math.floor(sortedIntervals.length * 0.75)];
+    const iqr = q3 - q1;
+
+    const filteredIntervals = intervals.filter(
+      (interval) => interval >= q1 - 1.5 * iqr && interval <= q3 + 1.5 * iqr
+    );
+
+    if (filteredIntervals.length === 0) return 100;
+
+    const mean =
+      filteredIntervals.reduce((sum, interval) => sum + interval, 0) /
+      filteredIntervals.length;
+    const variance =
+      filteredIntervals.reduce(
+        (sum, interval) => sum + Math.pow(interval - mean, 2),
+        0
+      ) / filteredIntervals.length;
+    const standardDeviation = Math.sqrt(variance);
+
+    // Use coefficient of variation with exponential scaling
+    const coefficientOfVariation = standardDeviation / mean;
+    const consistencyScore = Math.max(
+      0,
+      100 * Math.exp(-2 * coefficientOfVariation)
+    );
+
+    return Math.round(consistencyScore * 100) / 100;
   }
 
   private static analyzeErrorPatterns(
