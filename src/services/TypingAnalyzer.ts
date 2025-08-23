@@ -1,4 +1,9 @@
-import { Keystroke, TypingSession, TypingStats } from "../models/TypingModel";
+import {
+  ErrorPattern,
+  Keystroke,
+  TypingSession,
+  TypingStats,
+} from "../models/TypingModel";
 
 export class TypingAnalyzer {
   public static analyzeSession(session: TypingSession): TypingStats {
@@ -93,5 +98,13 @@ export class TypingAnalyzer {
     return Math.round(words / timeInMinutes);
   }
 
-  private static calculateConsistencyScore(keystrokes: Keystroke[]): number {}
+  private static calculateConsistencyScore(keystrokes: Keystroke[]): number {
+    if (keystrokes.length < 5) return 100;
+  }
+
+  private static analyzeErrorPatterns(
+    targetText: string,
+    inputText: string,
+    keystrokes: Keystroke[]
+  ): ErrorPattern[] {}
 }
