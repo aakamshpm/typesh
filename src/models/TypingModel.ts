@@ -12,8 +12,6 @@ export interface TypingSession {
 export interface Keystroke {
   key: string;
   timestamp: number;
-  isCorrect: boolean;
-  position: number;
   timeSinceLast: number;
 }
 
