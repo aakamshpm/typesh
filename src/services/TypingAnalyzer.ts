@@ -1,4 +1,4 @@
-import { TypingSession, TypingStats } from "../models/TypingModel";
+import { Keystroke, TypingSession, TypingStats } from "../models/TypingModel";
 
 export class TypingAnalyzer {
   public static analyzeSession(session: TypingSession): TypingStats {
@@ -92,4 +92,6 @@ export class TypingAnalyzer {
     const words = totalChars / 5;
     return Math.round(words / timeInMinutes);
   }
+
+  private static calculateConsistencyScore(keystrokes: Keystroke[]): number {}
 }
