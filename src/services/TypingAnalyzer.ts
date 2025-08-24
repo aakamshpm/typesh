@@ -188,10 +188,27 @@ export class TypingAnalyzer {
   private static calculateHesitationPenalty(
     hesitationCount: number,
     totalIntervals: number
-  ): number {}
+  ): number {
+    if (totalIntervals === 0) return 0;
+
+    const hesitationRatio = hesitationCount / totalIntervals;
+
+    const basePenalty = hesitationRatio * 30;
+    const progressivePenalty = Math.pow(hesitationRatio, 0.5) * 15;
+
+    return Math.min(40, basePenalty + progressivePenalty);
+  }
 
   private static calculatePausePenalty(
     pauseCount: number,
     totalIntervals: number
-  ): number {}
+  ): number {
+    if (totalIntervals === 0) return 0;
+
+    const pauseRatio = pauseCount / totalIntervals;
+
+    const pausePenalty = pauseRatio * 15;
+
+    return Math.min(20, pausePenalty);
+  }
 }
