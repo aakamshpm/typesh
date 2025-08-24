@@ -1,4 +1,5 @@
 import {
+  ErrorFound,
   ErrorPattern,
   Keystroke,
   TypingSession,
@@ -139,7 +140,48 @@ export class TypingAnalyzer {
     targetText: string,
     inputText: string,
     keystrokes: Keystroke[]
-  ): ErrorPattern[] {}
+  ): ErrorPattern[] {
+    const allignedErrors = this.findAllignedErrors(targetText, inputText);
+
+    const errorMap = new Map<
+      string,
+      {
+        frequency: number;
+        positions: number[];
+        mistakes: Set<string>;
+        errorType: "substitution" | "deletion" | "insertion";
+      }
+    >();
+
+    allignedErrors.forEach((error) => {
+      const key = error.expectedChar || "_MISSING_";
+
+      if (!errorMap.has(key)) {
+        errorMap.set(key, {
+          frequency: 0,
+          positions: [],
+          mistakes: new Set(),
+          errorType: error.type,
+        });
+      }
+
+      const errorData = errorMap.get(key)!;
+      errorData.frequency++;
+      errorData.positions.push(error.positition);
+      errorData.mistakes.add(error.actualChar || "_DELETED_");
+    });
+
+    return Array.from(errorMap.entries())
+      .map(([character, data]) => ({
+        character: character === "_MISSING_" ? "" : character,
+        frequency: data.frequency,
+        positions: data.positions,
+        commonMistakes: Array.from(data.mistakes),
+        errorType: data.errorType,
+      }))
+      .sort((a, b) => b.frequency - a.frequency)
+      .slice(0, 10);
+  }
 
   private static calculatePureRhythemConsistency(
     rhythemIntervals: number[]
@@ -210,5 +252,72 @@ export class TypingAnalyzer {
     const pausePenalty = pauseRatio * 15;
 
     return Math.min(20, pausePenalty);
+  }
+
+  private static findAllignedErrors(
+    target: string,
+    input: string
+  ): Array<ErrorFound> {
+    const errors: ErrorFound[] = [];
+
+    let targetIndex = 0;
+    let inputIndex = 0;
+
+    while (targetIndex < target.length || inputIndex < input.length) {
+      if (targetIndex >= target.length) {
+        errors.push({
+          expectedChar: target[targetIndex],
+          actualChar: null,
+          positition: targetIndex,
+          type: "deletion" as const,
+        });
+        targetIndex++;
+        inputIndex++;
+      } else if (target[targetIndex] === input[inputIndex]) {
+        targetIndex++;
+        inputIndex++;
+      } else {
+        const nextTargetInInput = input.indexOf(
+          target[targetIndex],
+          inputIndex + 1
+        );
+        const nextInputInTarget = target.indexOf(
+          input[inputIndex],
+          targetIndex + 1
+        );
+
+        if (
+          nextTargetInInput !== -1 &&
+          (nextInputInTarget === -1 ||
+            nextTargetInInput - inputIndex < nextInputInTarget - targetIndex)
+        ) {
+          errors.push({
+            expectedChar: null,
+            actualChar: input[inputIndex],
+            positition: targetIndex,
+            type: "insertion" as const,
+          });
+          inputIndex++;
+        } else if (nextInputInTarget !== -1) {
+          errors.push({
+            expectedChar: target[targetIndex],
+            actualChar: null,
+            positition: targetIndex,
+            type: "deletion" as const,
+          });
+          targetIndex++;
+        } else {
+          errors.push({
+            expectedChar: target[targetIndex],
+            actualChar: input[inputIndex],
+            positition: targetIndex,
+            type: "substitution" as const,
+          });
+          targetIndex++;
+          inputIndex++;
+        }
+      }
+    }
+    return errors;
   }
 }

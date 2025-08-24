@@ -28,9 +28,17 @@ export interface TypingStats {
 
 export interface ErrorPattern {
   character: string;
-  frequency: string;
-  positiona: number[];
+  frequency: number;
+  positions: number[];
   commonMistakes: string[]; // misspelled character
+  errorType?: "substitution" | "deletion" | "insertion";
+}
+
+export interface ErrorFound {
+  expectedChar: string | null;
+  actualChar: string | null;
+  positition: number;
+  type: "substitution" | "deletion" | "insertion";
 }
 
 export interface CustomParagraph {
