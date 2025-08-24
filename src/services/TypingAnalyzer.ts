@@ -13,9 +13,15 @@ export class TypingAnalyzer {
     const totalChars = userInput.length;
     const correctChars = this.calculateCorrectChars(targetText, userInput);
     const errorCount = this.levenshteinDistance(targetText, userInput);
-    const accuracy = totalChars > 0 ? (correctChars / totalChars) * 100 : 0;
 
-    const timeInMinutes = (endTime.getTime() - startTime.getTime()) / 60000;
+    // Calculate accuracy based on target text length for consistency
+    const accuracy =
+      targetText.length > 0 ? (correctChars / targetText.length) * 100 : 0;
+
+    const timeInMinutes = Math.max(
+      0.01,
+      (endTime.getTime() - startTime.getTime()) / 60000
+    ); // Prevent division by zero
     const wpm = this.calculateWPM(correctChars, timeInMinutes);
     const grossWPM = this.calculateGrossWPM(totalChars, timeInMinutes);
 
@@ -41,7 +47,9 @@ export class TypingAnalyzer {
   private static calculateCorrectChars(target: string, input: string): number {
     const editDistance = this.levenshteinDistance(target, input);
 
-    const correctedChars = Math.max(0, target.length - editDistance);
+    // For correct characters, we need to consider the minimum length and subtract the edit distance from it
+    const minLength = Math.min(target.length, input.length);
+    const correctedChars = Math.max(0, minLength - editDistance);
     return correctedChars;
   }
 
@@ -54,13 +62,13 @@ export class TypingAnalyzer {
       .fill(null)
       .map(() => Array(inputLen + 1).fill(0));
 
-    // Initialize: convert empty string to input prefixes (filling the first row)
-    for (let j = 0; j <= targetLen; j++) {
-      matrix[0][j] = j;
-    }
-    // Initialize: convert target prefixes to empty string (filling the first cplumn)
-    for (let i = 0; i <= inputLen; i++) {
+    // Initialize: convert empty string to target prefixes (filling the first row)
+    for (let i = 0; i <= targetLen; i++) {
       matrix[i][0] = i;
+    }
+    // Initialize: convert input prefixes to empty string (filling the first column)
+    for (let j = 0; j <= inputLen; j++) {
+      matrix[0][j] = j;
     }
 
     // Fill the rest of the matrix
@@ -69,9 +77,9 @@ export class TypingAnalyzer {
         const substitutionCost = target[i - 1] === input[j - 1] ? 0 : 1;
 
         matrix[i][j] = Math.min(
-          matrix[i - 1][j] + 1,
-          matrix[i][j - 1] + 1,
-          matrix[i - 1][j - 1] + substitutionCost
+          matrix[i - 1][j] + 1, // deletion
+          matrix[i][j - 1] + 1, // insertion
+          matrix[i - 1][j - 1] + substitutionCost // substitution
         );
       }
     }
@@ -109,13 +117,13 @@ export class TypingAnalyzer {
 
     if (intervals.length === 0) return 100;
 
-    const rhythemIntervals = intervals.filter((interval) => interval <= 400);
+    const rhythmIntervals = intervals.filter((interval) => interval <= 400);
     const hesitationIntervals = intervals.filter(
       (interval) => interval > 400 && interval <= 2000
     );
     const longPauseIntervals = intervals.filter((interval) => interval > 2000);
 
-    const rhythemScore = this.calculatePureRhythemConsistency(rhythemIntervals);
+    const rhythmScore = this.calculatePureRhythmConsistency(rhythmIntervals);
 
     const totalIntervals = intervals.length;
 
@@ -130,7 +138,7 @@ export class TypingAnalyzer {
 
     const overallConsistency = Math.max(
       0,
-      rhythemScore - hesitationPenalty - pausePenalty
+      rhythmScore - hesitationPenalty - pausePenalty
     );
 
     return Math.round(overallConsistency * 100) / 100;
@@ -141,7 +149,11 @@ export class TypingAnalyzer {
     inputText: string,
     keystrokes: Keystroke[]
   ): ErrorPattern[] {
-    const allignedErrors = this.findAllignedErrors(targetText, inputText);
+    if (!targetText || !inputText) {
+      return [];
+    }
+
+    const alignedErrors = this.findAlignedErrors(targetText, inputText);
 
     const errorMap = new Map<
       string,
@@ -153,7 +165,7 @@ export class TypingAnalyzer {
       }
     >();
 
-    allignedErrors.forEach((error) => {
+    alignedErrors.forEach((error: ErrorFound) => {
       const key = error.expectedChar || "_MISSING_";
 
       if (!errorMap.has(key)) {
@@ -167,7 +179,7 @@ export class TypingAnalyzer {
 
       const errorData = errorMap.get(key)!;
       errorData.frequency++;
-      errorData.positions.push(error.positition);
+      errorData.positions.push(error.position);
       errorData.mistakes.add(error.actualChar || "_DELETED_");
     });
 
@@ -183,48 +195,56 @@ export class TypingAnalyzer {
       .slice(0, 10);
   }
 
-  private static calculatePureRhythemConsistency(
-    rhythemIntervals: number[]
+  private static calculatePureRhythmConsistency(
+    rhythmIntervals: number[]
   ): number {
-    if (rhythemIntervals.length < 3) {
-      return 85; // Because less then 3 would be very low rhythem count
+    if (rhythmIntervals.length < 3) {
+      return 85; // Because less than 3 would be very low rhythm count
     }
 
-    const sortedIntervals = [...rhythemIntervals].sort((a, b) => a - b);
-    const q1 = sortedIntervals[Math.floor(sortedIntervals.length * 0.25)];
-    const q3 = sortedIntervals[Math.floor(sortedIntervals.length * 0.75)];
+    const sortedIntervals = [...rhythmIntervals].sort((a, b) => a - b);
+    const q1Index = Math.floor(sortedIntervals.length * 0.25);
+    const q3Index = Math.floor(sortedIntervals.length * 0.75);
+
+    const q1 = sortedIntervals[q1Index];
+    const q3 = sortedIntervals[q3Index];
 
     const iqr = q3 - q1;
 
-    let filteredIntervals = rhythemIntervals;
-    if (rhythemIntervals.length >= 5 && iqr > 0) {
+    let filteredIntervals = rhythmIntervals;
+    if (rhythmIntervals.length >= 5 && iqr > 0) {
       const lowerBound = q1 - 1.5 * iqr;
       const upperBound = q3 + 1.5 * iqr;
 
-      filteredIntervals = rhythemIntervals.filter(
-        (interval) => interval >= lowerBound && interval <= upperBound
+      filteredIntervals = rhythmIntervals.filter(
+        (interval: number) => interval >= lowerBound && interval <= upperBound
       );
     }
 
     // fallback to original intervals if too much of data was filtered out
-    if (filteredIntervals.length < rhythemIntervals.length * 0.5) {
-      filteredIntervals = rhythemIntervals;
-    } // if even half of rhythem intervals is not in filtered, we take the original intervals
+    if (filteredIntervals.length < rhythmIntervals.length * 0.5) {
+      filteredIntervals = rhythmIntervals;
+    } // if even half of rhythm intervals is not in filtered, we take the original intervals
 
     const mean =
-      filteredIntervals.reduce((sum, interval) => sum + interval, 0) /
-      filteredIntervals.length;
+      filteredIntervals.reduce(
+        (sum: number, interval: number) => sum + interval,
+        0
+      ) / filteredIntervals.length;
     const variance =
       filteredIntervals.reduce(
-        (sum, interval) => sum + Math.pow(interval - mean, 2),
+        (sum: number, interval: number) => sum + Math.pow(interval - mean, 2),
         0
       ) / filteredIntervals.length;
     const standardDeviation = Math.sqrt(variance);
 
     const coefficientOfVariation = mean > 0 ? standardDeviation / mean : 0;
-    const rythmScore = Math.max(0, 100 * Math.exp(-2 * coefficientOfVariation));
+    const rhythmScore = Math.max(
+      0,
+      100 * Math.exp(-2 * coefficientOfVariation)
+    );
 
-    return rythmScore;
+    return rhythmScore;
   }
 
   private static calculateHesitationPenalty(
@@ -254,7 +274,7 @@ export class TypingAnalyzer {
     return Math.min(20, pausePenalty);
   }
 
-  private static findAllignedErrors(
+  private static findAlignedErrors(
     target: string,
     input: string
   ): Array<ErrorFound> {
@@ -265,14 +285,23 @@ export class TypingAnalyzer {
 
     while (targetIndex < target.length || inputIndex < input.length) {
       if (targetIndex >= target.length) {
+        // We've reached the end of target but still have input characters (insertion)
+        errors.push({
+          expectedChar: null,
+          actualChar: input[inputIndex],
+          position: targetIndex,
+          type: "insertion" as const,
+        });
+        inputIndex++;
+      } else if (inputIndex >= input.length) {
+        // We've reached the end of input but still have target characters (deletion)
         errors.push({
           expectedChar: target[targetIndex],
           actualChar: null,
-          positition: targetIndex,
+          position: targetIndex,
           type: "deletion" as const,
         });
         targetIndex++;
-        inputIndex++;
       } else if (target[targetIndex] === input[inputIndex]) {
         targetIndex++;
         inputIndex++;
@@ -294,7 +323,7 @@ export class TypingAnalyzer {
           errors.push({
             expectedChar: null,
             actualChar: input[inputIndex],
-            positition: targetIndex,
+            position: targetIndex,
             type: "insertion" as const,
           });
           inputIndex++;
@@ -302,7 +331,7 @@ export class TypingAnalyzer {
           errors.push({
             expectedChar: target[targetIndex],
             actualChar: null,
-            positition: targetIndex,
+            position: targetIndex,
             type: "deletion" as const,
           });
           targetIndex++;
@@ -310,7 +339,7 @@ export class TypingAnalyzer {
           errors.push({
             expectedChar: target[targetIndex],
             actualChar: input[inputIndex],
-            positition: targetIndex,
+            position: targetIndex,
             type: "substitution" as const,
           });
           targetIndex++;

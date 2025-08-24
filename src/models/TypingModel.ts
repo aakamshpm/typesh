@@ -13,6 +13,8 @@ export interface Keystroke {
   key: string;
   timestamp: number;
   timeSinceLast: number;
+  isCorrect: boolean;
+  position: number;
 }
 
 export interface TypingStats {
@@ -37,7 +39,7 @@ export interface ErrorPattern {
 export interface ErrorFound {
   expectedChar: string | null;
   actualChar: string | null;
-  positition: number;
+  position: number;
   type: "substitution" | "deletion" | "insertion";
 }
 
