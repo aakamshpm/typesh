@@ -10,13 +10,17 @@ export class TypingAnalyzer {
   public static analyzeSession(session: TypingSession): TypingStats {
     const { keystrokes, targetText, userInput, startTime, endTime } = session;
 
+    const keypressAnalysis = this.analyzeKeypressAccuracy(
+      keystrokes,
+      targetText
+    );
+
     const totalChars = userInput.length;
     const correctChars = this.calculateCorrectChars(targetText, userInput);
     const errorCount = this.levenshteinDistance(targetText, userInput);
 
     // Calculate accuracy based on target text length for consistency
-    const accuracy =
-      targetText.length > 0 ? (correctChars / targetText.length) * 100 : 0;
+    const accuracy = keypressAnalysis.accuracy;
 
     const timeInMinutes = Math.max(
       0.01,
@@ -34,7 +38,7 @@ export class TypingAnalyzer {
 
     return {
       wpm,
-      grossWPM, // <-- Add this new field
+      grossWPM,
       accuracy: Math.round(accuracy * 100) / 100,
       errorCount,
       correctChars,
@@ -348,5 +352,43 @@ export class TypingAnalyzer {
       }
     }
     return errors;
+  }
+
+  private static analyzeKeypressAccuracy(
+    keystrokes: Keystroke[],
+    targetText: string
+  ): {
+    totalKeypresses: number;
+    correctKeypresses: number;
+    accuracy: number;
+  } {
+    let position = 0;
+    let correctKeypresses = 0;
+    let totalKeypresses = 0;
+
+    for (const keystroke of keystrokes) {
+      if (keystroke.key === "\b") {
+        if (position > 0) position--;
+        continue;
+      }
+      totalKeypresses++;
+
+      if (
+        position < targetText.length &&
+        keystroke.key === targetText[position]
+      ) {
+        correctKeypresses++;
+      }
+
+      position++;
+    }
+    const accuracy =
+      totalKeypresses > 0 ? (correctKeypresses / totalKeypresses) * 100 : 100;
+
+    return {
+      totalKeypresses,
+      correctKeypresses,
+      accuracy,
+    };
   }
 }
