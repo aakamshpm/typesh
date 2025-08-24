@@ -108,35 +108,31 @@ export class TypingAnalyzer {
 
     if (intervals.length === 0) return 100;
 
-    const sortedIntervals = [...intervals].sort((a, b) => a - b);
-    const q1 = sortedIntervals[Math.floor(sortedIntervals.length * 0.25)];
-    const q3 = sortedIntervals[Math.floor(sortedIntervals.length * 0.75)];
-    const iqr = q3 - q1;
+    const rhythemIntervals = intervals.filter((interval) => interval <= 400);
+    const hesitationIntervals = intervals.filter(
+      (interval) => interval > 400 && interval <= 2000
+    );
+    const longPauseIntervals = intervals.filter((interval) => interval > 2000);
 
-    const filteredIntervals = intervals.filter(
-      (interval) => interval >= q1 - 1.5 * iqr && interval <= q3 + 1.5 * iqr
+    const rhythemScore = this.calculatePureRhythemConsistency(rhythemIntervals);
+
+    const totalIntervals = intervals.length;
+
+    const hesitationPenalty = this.calculateHesitationPenalty(
+      hesitationIntervals.length,
+      totalIntervals
+    );
+    const pausePenalty = this.calculatePausePenalty(
+      longPauseIntervals.length,
+      totalIntervals
     );
 
-    if (filteredIntervals.length === 0) return 100;
-
-    const mean =
-      filteredIntervals.reduce((sum, interval) => sum + interval, 0) /
-      filteredIntervals.length;
-    const variance =
-      filteredIntervals.reduce(
-        (sum, interval) => sum + Math.pow(interval - mean, 2),
-        0
-      ) / filteredIntervals.length;
-    const standardDeviation = Math.sqrt(variance);
-
-    // Use coefficient of variation with exponential scaling
-    const coefficientOfVariation = standardDeviation / mean;
-    const consistencyScore = Math.max(
+    const overallConsistency = Math.max(
       0,
-      100 * Math.exp(-2 * coefficientOfVariation)
+      rhythemScore - hesitationPenalty - pausePenalty
     );
 
-    return Math.round(consistencyScore * 100) / 100;
+    return Math.round(overallConsistency * 100) / 100;
   }
 
   private static analyzeErrorPatterns(
@@ -144,4 +140,18 @@ export class TypingAnalyzer {
     inputText: string,
     keystrokes: Keystroke[]
   ): ErrorPattern[] {}
+
+  private static calculatePureRhythemConsistency(
+    rhythemIntervals: number[]
+  ): number {}
+
+  private static calculateHesitationPenalty(
+    hesitationCount: number,
+    totalIntervals: number
+  ): number {}
+
+  private static calculatePausePenalty(
+    pauseCount: number,
+    totalIntervals: number
+  ): number {}
 }
