@@ -1,27 +1,53 @@
-import { ErrorFound } from "../../models/TypingModel";
+import { ErrorFound, ErrorPattern, Keystroke } from "../../models/TypingModel";
+import { findAlignedErrors } from "./stringUtils";
 
-export function analyzeErrorPatterns(errors: ErrorFound[]): {
-  mostCommonErrors: { char: string; count: number }[];
-  errorFrequency: number;
-} {
-  const errorCounts = new Map<string, number>();
+export function analyzeErrorPatterns(
+  targetText: string,
+  inputText: string,
+  keystrokes: Keystroke[]
+): ErrorPattern[] {
+  if (!targetText || !inputText) {
+    return [];
+  }
 
-  errors.forEach((error) => {
-    if (error.expectedChar && error.actualChar) {
-      const errorKey = `${error.expectedChar}->${error.actualChar}`;
-      errorCounts.set(errorKey, (errorCounts.get(errorKey) || 0) + 1);
+  const alignedErrors = findAlignedErrors(targetText, inputText);
+
+  const errorMap = new Map<
+    string,
+    {
+      frequency: number;
+      positions: number[];
+      mistakes: Set<string>;
+      errorType: "substitution" | "deletion" | "insertion";
     }
+  >();
+
+  alignedErrors.forEach((error: ErrorFound) => {
+    const key = error.expectedChar || "_MISSING_";
+
+    if (!errorMap.has(key)) {
+      errorMap.set(key, {
+        frequency: 0,
+        positions: [],
+        mistakes: new Set(),
+        errorType: error.type,
+      });
+    }
+
+    const errorData = errorMap.get(key)!;
+    errorData.frequency++;
+    errorData.positions.push(error.position);
+    errorData.mistakes.add(error.actualChar || "_DELETED_");
   });
 
-  const mostCommonErrors = Array.from(errorCounts.entries())
-    .map(([char, count]) => ({ char, count }))
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 5);
-
-  const errorFrequency = errors.length;
-
-  return {
-    mostCommonErrors,
-    errorFrequency,
-  };
+  return Array.from(errorMap.entries())
+    .map(([character, data]) => ({
+      character: character === "_MISSING_" ? "" : character,
+      frequency: data.frequency,
+      positions: data.positions,
+      commonMistakes: Array.from(data.mistakes),
+      errorType: data.errorType,
+    }))
+    .sort((a, b) => b.frequency - a.frequency)
+    .slice(0, 10);
 }

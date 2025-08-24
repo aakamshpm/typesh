@@ -1,8 +1,5 @@
 import { TypingSession, TypingStats, ErrorFound } from "../models/TypingModel";
-import {
-  levenshteinDistance,
-  findAlignedErrors,
-} from "./components/stringUtils";
+import { levenshteinDistance } from "./components/stringUtils";
 import { calculateWPM, calculateGrossWPM } from "./components/wpmCalculator";
 import {
   calculateCorrectChars,
@@ -20,11 +17,13 @@ export class TypingAnalyzer {
   public static analyzeSession(session: TypingSession): TypingStats {
     const { keystrokes, targetText, userInput, startTime, endTime } = session;
 
+    const keypressAnalysis = analyzeKeypressAccuracy(keystrokes, targetText);
+
     const totalChars = userInput.length;
     const correctChars = calculateCorrectChars(keystrokes);
     const errorCount = levenshteinDistance(targetText, userInput);
 
-    const accuracy = analyzeKeypressAccuracy(keystrokes);
+    const accuracy = keypressAnalysis.accuracy;
 
     const timeInMinutes = Math.max(
       0.01,
@@ -35,18 +34,21 @@ export class TypingAnalyzer {
 
     const consistencyScore = calculateConsistencyScore(keystrokes);
 
-    const errors: ErrorFound[] = findAlignedErrors(targetText, userInput);
-    const errorPatternsResult = analyzeErrorPatterns(errors);
+    const errorPatterns = analyzeErrorPatterns(
+      targetText,
+      userInput,
+      keystrokes
+    );
 
     return {
       wpm,
       grossWPM,
-      accuracy,
+      accuracy: Math.round(accuracy * 100) / 100,
       errorCount,
       correctChars,
       totalChars,
       consistencyScore,
-      errorPatterns: [],
+      errorPatterns,
     };
   }
 }
