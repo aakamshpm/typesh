@@ -143,7 +143,47 @@ export class TypingAnalyzer {
 
   private static calculatePureRhythemConsistency(
     rhythemIntervals: number[]
-  ): number {}
+  ): number {
+    if (rhythemIntervals.length < 3) {
+      return 85; // Because less then 3 would be very low rhythem count
+    }
+
+    const sortedIntervals = [...rhythemIntervals].sort((a, b) => a - b);
+    const q1 = sortedIntervals[Math.floor(sortedIntervals.length * 0.25)];
+    const q3 = sortedIntervals[Math.floor(sortedIntervals.length * 0.75)];
+
+    const iqr = q3 - q1;
+
+    let filteredIntervals = rhythemIntervals;
+    if (rhythemIntervals.length >= 5 && iqr > 0) {
+      const lowerBound = q1 - 1.5 * iqr;
+      const upperBound = q3 + 1.5 * iqr;
+
+      filteredIntervals = rhythemIntervals.filter(
+        (interval) => interval >= lowerBound && interval <= upperBound
+      );
+    }
+
+    // fallback to original intervals if too much of data was filtered out
+    if (filteredIntervals.length < rhythemIntervals.length * 0.5) {
+      filteredIntervals = rhythemIntervals;
+    } // if even half of rhythem intervals is not in filtered, we take the original intervals
+
+    const mean =
+      filteredIntervals.reduce((sum, interval) => sum + interval, 0) /
+      filteredIntervals.length;
+    const variance =
+      filteredIntervals.reduce(
+        (sum, interval) => sum + Math.pow(interval - mean, 2),
+        0
+      ) / filteredIntervals.length;
+    const standardDeviation = Math.sqrt(variance);
+
+    const coefficientOfVariation = mean > 0 ? standardDeviation / mean : 0;
+    const rythmScore = Math.max(0, 100 * Math.exp(-2 * coefficientOfVariation));
+
+    return rythmScore;
+  }
 
   private static calculateHesitationPenalty(
     hesitationCount: number,
