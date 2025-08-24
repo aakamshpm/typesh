@@ -45,3 +45,32 @@ export function analyzeKeypressAccuracy(
     accuracy,
   };
 }
+
+export function calculateCharacterStats(
+  targetText: string,
+  userInput: string
+): {
+  correct: number;
+  incorrect: number;
+  extra: number;
+  missed: number;
+} {
+  const minLength = Math.min(targetText.length, userInput.length);
+  let correct = 0;
+  let incorrect = 0;
+
+  for (let i = 0; i < minLength; i++) {
+    if (targetText[i] === userInput[i]) correct++;
+    else incorrect++;
+  }
+
+  const extra = Math.max(0, userInput.length - targetText.length);
+  const missed = Math.max(0, targetText.length - userInput.length);
+
+  return {
+    correct,
+    incorrect,
+    extra,
+    missed,
+  };
+}

@@ -26,6 +26,13 @@ export interface TypingStats {
   totalChars: number;
   consistencyScore: number;
   errorPatterns: ErrorPattern[];
+
+  characterStats: {
+    correct: number;
+    incorrect: number;
+    extra: number;
+    missed: number;
+  };
 }
 
 export interface ErrorPattern {

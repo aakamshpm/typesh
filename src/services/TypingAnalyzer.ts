@@ -1,16 +1,12 @@
-import { TypingSession, TypingStats, ErrorFound } from "../models/TypingModel";
+import { TypingSession, TypingStats } from "../models/TypingModel";
 import { levenshteinDistance } from "./components/stringUtils";
 import { calculateWPM, calculateGrossWPM } from "./components/wpmCalculator";
 import {
   calculateCorrectChars,
   analyzeKeypressAccuracy,
+  calculateCharacterStats,
 } from "./components/accuracyCalculator";
-import {
-  calculateConsistencyScore,
-  calculatePureRhythmConsistency,
-  calculateHesitationPenalty,
-  calculatePausePenalty,
-} from "./components/consistencyAnalyzer";
+import { calculateConsistencyScore } from "./components/consistencyAnalyzer";
 import { analyzeErrorPatterns } from "./components/errorAnalyzer";
 
 export class TypingAnalyzer {
@@ -40,6 +36,8 @@ export class TypingAnalyzer {
       keystrokes
     );
 
+    const characterStats = calculateCharacterStats(targetText, userInput);
+
     return {
       wpm,
       grossWPM,
@@ -49,6 +47,7 @@ export class TypingAnalyzer {
       totalChars,
       consistencyScore,
       errorPatterns,
+      characterStats,
     };
   }
 }
