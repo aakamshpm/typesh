@@ -52,7 +52,21 @@ export class TypingSessionManager {
     this.onProgress = callback;
   }
 
-  public onKeystrokeEvent(callback: (keystroke: Keystroke) => void): void {
+  public onKeystrokeEvent(
+    callback: (keystroke: Keystroke, state: SessionState) => void
+  ): void {
     this.onKeystroke = callback;
+  }
+
+  public startSession(): void {
+    if (this.state.isActive) return; // Guard against double-start
+
+    this.state.isActive = true;
+    this.state.startTime = new Date();
+    this.lastKeystrokeTime = Date.now();
+
+    if (this.config.mode === "time") this.startTimer();
+
+    this.notifyProgress();
   }
 }
