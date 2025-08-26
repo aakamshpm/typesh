@@ -13,8 +13,6 @@ export interface Keystroke {
   key: string;
   timestamp: number;
   timeSinceLast: number;
-  isCorrect: boolean;
-  position: number;
 }
 
 export interface TypingStats {
@@ -22,8 +20,6 @@ export interface TypingStats {
   grossWPM: number;
   accuracy: number;
   errorCount: number;
-  correctChars: number;
-  totalInputChars: number;
   consistencyScore: number;
   errorPatterns: ErrorPattern[];
 

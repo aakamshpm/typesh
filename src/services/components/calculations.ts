@@ -1,9 +1,5 @@
 import { Keystroke } from "../../models/TypingModel";
 
-export function calculateCorrectChars(keystrokes: Keystroke[]): number {
-  return keystrokes.filter((k) => k.isCorrect).length;
-}
-
 export function analyzeKeypressAccuracy(
   keystrokes: Keystroke[],
   targetText: string

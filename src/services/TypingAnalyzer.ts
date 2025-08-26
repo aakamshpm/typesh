@@ -2,7 +2,6 @@ import { TypingSession, TypingStats } from "../models/TypingModel";
 import { levenshteinDistance } from "./components/stringUtils";
 import { calculateWPM, calculateGrossWPM } from "./components/wpmCalculator";
 import {
-  calculateCorrectChars,
   analyzeKeypressAccuracy,
   calculateCharacterStats,
   calculateCorrectWords,
@@ -17,8 +16,6 @@ export class TypingAnalyzer {
 
     const keypressAnalysis = analyzeKeypressAccuracy(keystrokes, targetText);
 
-    const totalInputChars = userInput.length;
-    const correctChars = calculateCorrectChars(keystrokes);
     const errorCount = levenshteinDistance(targetText, userInput);
 
     const accuracy = keypressAnalysis.accuracy;
@@ -49,8 +46,6 @@ export class TypingAnalyzer {
       grossWPM,
       accuracy: Math.round(accuracy * 100) / 100,
       errorCount,
-      correctChars,
-      totalInputChars,
       consistencyScore,
       errorPatterns,
       characterStats,
