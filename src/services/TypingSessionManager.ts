@@ -5,6 +5,7 @@ export class TypingSessionManager {
   private config: SessionConfig;
   private state: SessionState;
   private sessionTimer: NodeJS.Timeout | null = null;
+  private pausedAt: number | null = null;
   private lastKeystrokeTime: number = 0;
 
   private onSessionEnd?: (session: TypingSession) => void;
@@ -74,6 +75,7 @@ export class TypingSessionManager {
     if (!this.state.isActive || this.state.isPaused) return;
 
     this.state.isPaused = true;
+    this.pausedAt = Date.now();
     this.clearTimer();
     this.notifyProgress();
   }
@@ -84,7 +86,9 @@ export class TypingSessionManager {
     this.state.isPaused = false;
     this.lastKeystrokeTime = Date.now();
 
-    if (this.config.mode === "time") this.startTimer();
+    if (this.config.mode === "time") this.resumeTimerWithRemaining();
+
+    this.pausedAt = null; // clear paused at time if the mode is not timer mode
 
     this.notifyProgress();
   }
@@ -110,5 +114,38 @@ export class TypingSessionManager {
 
     this.onSessionEnd?.(session);
     this.notifyProgress();
+  }
+
+  private startTimer(): void {
+    this.clearTimer();
+
+    this.sessionTimer = setTimeout(() => {
+      this.endSession();
+    }, this.config.target * 1000);
+  }
+
+  private clearTimer(): void {
+    if (this.sessionTimer) {
+      clearTimeout(this.sessionTimer);
+      this.sessionTimer = null;
+    }
+  }
+
+  private notifyProgress(): void {
+    this.onProgress?.({ ...this.state });
+  }
+
+  private resumeTimerWithRemaining(): void {
+    if (!this.state.startTime || !this.pausedAt) return;
+
+    const timeUsedBeforePause =
+      (this.pausedAt - this.state.startTime.getTime()) / 1000;
+    const remainingTime = Math.max(0, this.config.target - timeUsedBeforePause);
+
+    if (remainingTime > 0) {
+      this.sessionTimer = setTimeout(() => {
+        this.endSession();
+      }, remainingTime * 1000);
+    } else this.endSession(); // ending session because time was already up when paused
   }
 }
