@@ -1,11 +1,10 @@
 export function calculateWPM(
-  correctedChars: number,
+  correctWords: number,
   timeInMinutes: number
 ): number {
-  if (timeInMinutes <= 0) return 0;
+  if (timeInMinutes < 0) return 0;
 
-  const words = correctedChars / 5;
-  return Math.round(words / timeInMinutes);
+  return Math.round(correctWords / timeInMinutes);
 }
 
 export function calculateGrossWPM(

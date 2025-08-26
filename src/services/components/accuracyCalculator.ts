@@ -74,3 +74,22 @@ export function calculateCharacterStats(
     missed,
   };
 }
+
+export function calculateCorrectWords(
+  targetText: string,
+  userInput: string
+): number {
+  if (!targetText.trim() || !userInput.trim()) return 0;
+
+  const targetWords = targetText.trim().split(/\s+/);
+  const userWords = targetText.trim().split(/\s+/);
+
+  let correctWords = 0;
+
+  const minWordCount = Math.min(targetWords.length, userWords.length);
+
+  for (let i = 0; i < minWordCount; i++)
+    if (targetWords[i] === userWords[i]) correctWords++;
+
+  return correctWords;
+}
