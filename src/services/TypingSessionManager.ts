@@ -69,4 +69,46 @@ export class TypingSessionManager {
 
     this.notifyProgress();
   }
+
+  public pauseSession(): void {
+    if (!this.state.isActive || this.state.isPaused) return;
+
+    this.state.isPaused = true;
+    this.clearTimer();
+    this.notifyProgress();
+  }
+
+  public resumeSession(): void {
+    if (!this.state.isActive || !this.state.isPaused) return;
+
+    this.state.isPaused = false;
+    this.lastKeystrokeTime = Date.now();
+
+    if (this.config.mode === "time") this.startTimer();
+
+    this.notifyProgress();
+  }
+
+  public endSession(): void {
+    if (!this.state.isActive || this.state.isCompleted) return;
+
+    this.state.isCompleted = true;
+    this.state.isActive = false;
+    this.state.endTime = new Date();
+    this.clearTimer();
+
+    const session: TypingSession = {
+      id: this.config.sessionId,
+      keystrokes: [...this.state.keystrokes],
+      targetText: this.config.targetText,
+      userInput: this.state.currentInput,
+      startTime: this.state.startTime,
+      endTime: this.state.endTime,
+      timerDuration: this.config.target,
+      isCompleted: true,
+    };
+
+    this.onSessionEnd?.(session);
+    this.notifyProgress();
+  }
 }

@@ -1,7 +1,7 @@
 export interface TypingSession {
   id: string;
-  startTime: Date;
-  endTime: Date;
+  startTime: Date | null;
+  endTime: Date | null;
   targetText: string;
   userInput: string;
   keystrokes: Keystroke[];
