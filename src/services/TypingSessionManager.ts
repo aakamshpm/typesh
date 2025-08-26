@@ -32,15 +32,27 @@ export class TypingSessionManager {
     };
   }
 
-  private getCurrentState(): SessionState {
+  public getCurrentState(): SessionState {
     return { ...this.state };
   }
 
-  private getConfig(): SessionConfig {
+  public getConfig(): SessionConfig {
     return { ...this.config };
   }
 
-  private getSessionId(): string {
+  public getSessionId(): string {
     return this.config.sessionId;
+  }
+
+  public onSessionComplete(callback: (session: TypingSession) => void): void {
+    this.onSessionEnd = callback;
+  }
+
+  public onProgressUpdate(callback: (state: SessionState) => void): void {
+    this.onProgress = callback;
+  }
+
+  public onKeystrokeEvent(callback: (keystroke: Keystroke) => void): void {
+    this.onKeystroke = callback;
   }
 }
