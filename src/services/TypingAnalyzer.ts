@@ -6,7 +6,8 @@ import {
   analyzeKeypressAccuracy,
   calculateCharacterStats,
   calculateCorrectWords,
-} from "./components/accuracyCalculator";
+  countAllTypedCharacters,
+} from "./components/calculations";
 import { calculateConsistencyScore } from "./components/consistencyAnalyzer";
 import { analyzeErrorPatterns } from "./components/errorAnalyzer";
 
@@ -16,7 +17,7 @@ export class TypingAnalyzer {
 
     const keypressAnalysis = analyzeKeypressAccuracy(keystrokes, targetText);
 
-    const totalChars = userInput.length;
+    const totalInputChars = userInput.length;
     const correctChars = calculateCorrectChars(keystrokes);
     const errorCount = levenshteinDistance(targetText, userInput);
 
@@ -29,7 +30,9 @@ export class TypingAnalyzer {
 
     const correctWords = calculateCorrectWords(targetText, userInput);
     const wpm = calculateWPM(correctWords, timeInMinutes);
-    const grossWPM = calculateGrossWPM(totalChars, timeInMinutes);
+
+    const allTypedChars = countAllTypedCharacters(keystrokes);
+    const grossWPM = calculateGrossWPM(allTypedChars, timeInMinutes);
 
     const consistencyScore = calculateConsistencyScore(keystrokes);
 
@@ -47,7 +50,7 @@ export class TypingAnalyzer {
       accuracy: Math.round(accuracy * 100) / 100,
       errorCount,
       correctChars,
-      totalChars,
+      totalInputChars,
       consistencyScore,
       errorPatterns,
       characterStats,

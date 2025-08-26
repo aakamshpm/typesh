@@ -23,7 +23,7 @@ export interface TypingStats {
   accuracy: number;
   errorCount: number;
   correctChars: number;
-  totalChars: number;
+  totalInputChars: number;
   consistencyScore: number;
   errorPatterns: ErrorPattern[];
 

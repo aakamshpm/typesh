@@ -8,11 +8,11 @@ export function calculateWPM(
 }
 
 export function calculateGrossWPM(
-  totalChars: number,
+  totalTypedChars: number,
   timeInMinutes: number
 ): number {
   if (timeInMinutes <= 0) return 0;
 
-  const words = totalChars / 5;
+  const words = totalTypedChars / 5;
   return Math.round(words / timeInMinutes);
 }

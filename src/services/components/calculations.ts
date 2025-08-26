@@ -93,3 +93,14 @@ export function calculateCorrectWords(
 
   return correctWords;
 }
+
+export function countAllTypedCharacters(keystrokes: Keystroke[]): number {
+  let totalTypedChars = 0;
+
+  for (const keystroke of keystrokes)
+    if (keystroke.key !== "\b") totalTypedChars++;
+
+  //Note: We don't count backspaces as "typed" characters
+
+  return totalTypedChars;
+}
