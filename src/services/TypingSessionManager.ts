@@ -148,4 +148,22 @@ export class TypingSessionManager {
       }, remainingTime * 1000);
     } else this.endSession(); // ending session because time was already up when paused
   }
+
+  public processKeyStroke(character: string): boolean {
+    if (!this.state.isActive || this.state.isPaused || this.state.isCompleted)
+      return false;
+
+    const now = Date.now();
+    const timeSinceLast =
+      this.state.keystrokes.length === 0 ? 0 : now - this.lastKeystrokeTime;
+
+    const keystroke: Keystroke = {
+      key: character,
+      timestamp: now,
+      timeSinceLast,
+    };
+
+    this.state.keystrokes.push(keystroke);
+    this.lastKeystrokeTime = now;
+  }
 }
