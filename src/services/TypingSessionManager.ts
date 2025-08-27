@@ -248,14 +248,19 @@ export class TypingSessionManager {
 
   public getCurrentWPM(): number {
     const elapsed = this.getElapsedTime();
-    if (elapsed === 0) return 0;
+    if (elapsed <= 0.01) return 0; // Avoid division by very small numbers
 
-    const correctWords = calculateCorrectWords(
-      this.config.targetText,
-      this.state.currentInput
-    );
-    const timeInMinutes = elapsed / 60;
+    try {
+      const correctWords = calculateCorrectWords(
+        this.config.targetText,
+        this.state.currentInput
+      );
+      const timeInMinutes = elapsed / 60;
 
-    return calculateWPM(correctWords, timeInMinutes);
+      return calculateWPM(correctWords, timeInMinutes);
+    } catch (error) {
+      console.error("TypingSessionManager: WPM calculation failed:", error);
+      return 0;
+    }
   }
 }
