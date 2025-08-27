@@ -165,5 +165,42 @@ export class TypingSessionManager {
 
     this.state.keystrokes.push(keystroke);
     this.lastKeystrokeTime = now;
+    if (character === "\b" || character === "Backspace") {
+      if (this.state.currentInput.length > 0) {
+        this.state.currentInput = this.state.currentInput.slice(0, -1);
+        this.state.currentPosition = Math.max(
+          0,
+          this.state.currentPosition - 1
+        );
+      }
+    } else {
+      this.state.currentInput += character;
+      this.state.currentPosition++;
+    }
+
+    // check if session should end based on mode in each keystroke
+    this.checkCompletionConditions();
+
+    this.onKeystroke?.(keystroke, { ...this.state });
+    this.notifyProgress();
+
+    return true;
+  }
+
+  private checkCompletionConditions(): void {
+    switch (this.config.mode) {
+      case "words":
+        const wordCount = this.state.currentInput.trim().split(/\s+/).length;
+        if (wordCount >= this.config.target) this.endSession();
+        break;
+      case "quote":
+        if (this.state.currentInput.length >= this.config.targetText.length)
+          this.endSession();
+        break;
+      case "time": // time mode is automatically handled by timer, although we need to add a check if user completed typing within the given timestamp
+        if (this.state.currentInput.length >= this.config.targetText.length)
+          this.endSession();
+        break;
+    }
   }
 }
