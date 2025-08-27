@@ -1,5 +1,7 @@
 import { SessionConfig, SessionState } from "../models/SessionModel";
 import { Keystroke, TypingSession } from "../models/TypingModel";
+import { calculateCorrectWords } from "./components/calculations";
+import { calculateWPM } from "./components/wpmCalculator";
 
 export class TypingSessionManager {
   private config: SessionConfig;
@@ -242,5 +244,18 @@ export class TypingSessionManager {
       default:
         return 0;
     }
+  }
+
+  public getCurrentWPM(): number {
+    const elapsed = this.getElapsedTime();
+    if (elapsed === 0) return 0;
+
+    const correctWords = calculateCorrectWords(
+      this.config.targetText,
+      this.state.currentInput
+    );
+    const timeInMinutes = elapsed / 60;
+
+    return calculateWPM(correctWords, timeInMinutes);
   }
 }
