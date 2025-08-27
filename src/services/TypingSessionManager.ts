@@ -203,4 +203,44 @@ export class TypingSessionManager {
         break;
     }
   }
+
+  // Utility methods of UI //
+  public getElapsedTime(): number {
+    if (!this.state.startTime) return 0;
+
+    let endTime: Date;
+    if (this.state.isPaused && this.pausedAt) endTime = new Date(this.pausedAt);
+    else if (this.state.endTime) endTime = new Date(this.state.endTime);
+    else endTime = new Date();
+
+    return (endTime.getTime() - this.state.startTime.getTime()) / 1000;
+  }
+
+  // retreive remaining time in time mode
+  public getRemainingTime(): number {
+    if (this.config.mode !== "time") return 0;
+
+    return Math.max(0, this.config.target - this.getElapsedTime());
+  }
+
+  public getProgress(): number {
+    switch (this.config.mode) {
+      case "time":
+        const elapsed = this.getElapsedTime();
+        return Math.min(100, (elapsed / this.config.target) * 100);
+
+      case "words":
+        const wordCount = this.state.currentInput.trim().split(/\s+/).length;
+        return Math.min(100, (wordCount / this.config.target) * 100);
+
+      case "quote":
+        return Math.min(
+          100,
+          (this.state.currentInput.length / this.config.targetText.length) * 100
+        );
+
+      default:
+        return 0;
+    }
+  }
 }
