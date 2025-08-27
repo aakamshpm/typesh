@@ -15,6 +15,8 @@ export class TypingSessionManager {
   private onKeystroke?: (keystroke: Keystroke, state: SessionState) => void;
 
   constructor(config: Omit<SessionConfig, "sessionId">) {
+    this.validateConfig(config);
+
     this.config = {
       ...config,
       sessionId: crypto.randomUUID(),
@@ -59,6 +61,14 @@ export class TypingSessionManager {
     callback: (keystroke: Keystroke, state: SessionState) => void
   ): void {
     this.onKeystroke = callback;
+  }
+
+  private validateConfig(config: Omit<SessionConfig, "sessionId">): void {
+    if (!config.targetText || config.targetText.trim().length === 0)
+      throw new Error("TypingSessionManager: targetText cannot be empty");
+
+    if (config.target < 0)
+      throw new Error("TypingSessionManager: targest must be positive");
   }
 
   public startSession(): void {
@@ -151,42 +161,82 @@ export class TypingSessionManager {
     } else this.endSession(); // ending session because time was already up when paused
   }
 
-  public processKeyStroke(character: string): boolean {
-    if (!this.state.isActive || this.state.isPaused || this.state.isCompleted)
-      return false;
-
-    const now = Date.now();
-    const timeSinceLast =
-      this.state.keystrokes.length === 0 ? 0 : now - this.lastKeystrokeTime;
-
-    const keystroke: Keystroke = {
-      key: character,
-      timestamp: now,
-      timeSinceLast,
-    };
-
-    this.state.keystrokes.push(keystroke);
-    this.lastKeystrokeTime = now;
-    if (character === "\b" || character === "Backspace") {
-      if (this.state.currentInput.length > 0) {
-        this.state.currentInput = this.state.currentInput.slice(0, -1);
-        this.state.currentPosition = Math.max(
-          0,
-          this.state.currentPosition - 1
-        );
+  public processKeystroke(character: string): boolean {
+    try {
+      // Validate input
+      if (!character || character.length === 0) {
+        console.warn("TypingSessionManager: Empty character ignored");
+        return false;
       }
-    } else {
-      this.state.currentInput += character;
-      this.state.currentPosition++;
+
+      // Check for state corruption
+      if (this.state.currentPosition < 0) {
+        console.error(
+          "TypingSessionManager: State corruption detected - negative position"
+        );
+        this.resetSession();
+        return false;
+      }
+
+      if (!this.state.isActive || this.state.isPaused || this.state.isCompleted)
+        return false;
+
+      const now = Date.now();
+      const timeSinceLast =
+        this.state.keystrokes.length === 0 ? 0 : now - this.lastKeystrokeTime;
+
+      const keystroke: Keystroke = {
+        key: character,
+        timestamp: now,
+        timeSinceLast,
+      };
+
+      this.state.keystrokes.push(keystroke);
+      this.lastKeystrokeTime = now;
+      if (character === "\b" || character === "Backspace") {
+        if (this.state.currentInput.length > 0) {
+          this.state.currentInput = this.state.currentInput.slice(0, -1);
+          this.state.currentPosition = Math.max(
+            0,
+            this.state.currentPosition - 1
+          );
+        }
+      } else {
+        this.state.currentInput += character;
+        this.state.currentPosition++;
+      }
+
+      // check if session should end based on mode in each keystroke
+      this.checkCompletionConditions();
+
+      this.onKeystroke?.(keystroke, { ...this.state });
+      this.notifyProgress();
+
+      return true;
+    } catch (error) {
+      console.error("TypingSessionManager: Error processing keystroke:", error);
+      this.handleCriticalError(error as Error);
+      return false;
     }
+  }
 
-    // check if session should end based on mode in each keystroke
-    this.checkCompletionConditions();
+  private handleCriticalError(error: Error): void {
+    console.error("TypingSessionManager Critical Error:", {
+      error: error.message,
+      state: this.state,
+      config: this.config,
+    });
 
-    this.onKeystroke?.(keystroke, { ...this.state });
-    this.notifyProgress();
+    try {
+      this.clearTimer();
+      this.state.isActive = false;
+      this.state.isPaused = false;
 
-    return true;
+      // Notify error callback if exists
+      this.onError?.(error);
+    } catch (recoveryError) {
+      console.error("TypingSessionManager: Recovery failed:", recoveryError);
+    }
   }
 
   private checkCompletionConditions(): void {
