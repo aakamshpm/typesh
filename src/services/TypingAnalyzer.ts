@@ -22,7 +22,7 @@ export class TypingAnalyzer {
 
     const timeInMinutes = Math.max(
       0.01,
-      (endTime.getTime() - startTime.getTime()) / 60000
+      (endTime!.getTime() - startTime!.getTime()) / 60000
     );
 
     const correctWords = calculateCorrectWords(targetText, userInput);
