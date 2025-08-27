@@ -163,7 +163,6 @@ export class TypingSessionManager {
 
   public processKeystroke(character: string): boolean {
     try {
-      // Validate input
       if (!character || character.length === 0) {
         console.warn("TypingSessionManager: Empty character ignored");
         return false;
@@ -231,9 +230,6 @@ export class TypingSessionManager {
       this.clearTimer();
       this.state.isActive = false;
       this.state.isPaused = false;
-
-      // Notify error callback if exists
-      this.onError?.(error);
     } catch (recoveryError) {
       console.error("TypingSessionManager: Recovery failed:", recoveryError);
     }
@@ -312,5 +308,15 @@ export class TypingSessionManager {
       console.error("TypingSessionManager: WPM calculation failed:", error);
       return 0;
     }
+  }
+
+  public resetSession(): void {
+    if (this.state.isActive) this.clearTimer();
+
+    this.state = this.initializeState();
+    this.lastKeystrokeTime = 0;
+    this.pausedAt = null;
+
+    this.notifyProgress();
   }
 }
