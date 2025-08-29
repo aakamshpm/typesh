@@ -77,4 +77,59 @@ export class KeystrokeCaptureService {
       );
     }
   }
+
+  // Handlers //
+  public addHandlers(handler: KeystrokeHandler): () => void {
+    try {
+      if (!handler || typeof handler !== "function")
+        throw new Error("Handler must be a function");
+
+      this.handlers.add(handler);
+      console.log(
+        `${SERVICE_NAME}: Handler added. Total handlers: ${this.handlers.size}`
+      );
+
+      // return a cleanup function to unsubscribe the activity
+      return () => this.removeHandler(handler);
+    } catch (error) {
+      console.error(`${SERVICE_NAME}: Failed to add handler:`, error);
+      throw error;
+    }
+  }
+
+  public removeHandler(handler: KeystrokeHandler): boolean {
+    try {
+      const wasRemoved = this.handlers.delete(handler);
+
+      if (wasRemoved) {
+        console.log(
+          `${SERVICE_NAME}: Handler removed. Remaining: ${this.handlers.size}`
+        );
+      } else {
+        console.warn(
+          `${SERVICE_NAME}: Attempted to remove non-existent handler`
+        );
+      }
+      return wasRemoved;
+    } catch (error) {
+      console.error(`${SERVICE_NAME}: Failed to remove handler:`, error);
+      return false;
+    }
+  }
+
+  public clearHandlers(): void {
+    try {
+      const handlerCount = this.handlers.size;
+      this.handlers.clear();
+
+      console.log(`${SERVICE_NAME}: Cleared ${handlerCount} handlers`);
+    } catch (error) {
+      console.error(`${SERVICE_NAME}: Failed to clear handlers:`, error);
+    }
+  }
+
+  // get current handler count (debugging fnn)
+  public getHandlerCount(): number {
+    return this.handlers.size;
+  }
 }
