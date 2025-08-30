@@ -211,6 +211,10 @@ export class KeystrokeCaptureService {
     } catch (error) {}
   }
 
+  private focusTargetElement(): void {}
+
+  private handleStartupError(error: Error): void {}
+
   private handleKeyDown(event: KeyboardEvent): void {}
 
   private handleKeyPress(event: KeyboardEvent): void {}
