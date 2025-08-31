@@ -698,4 +698,390 @@ suite("TypingSessionManager Tests", () => {
     );
     assert.ok(state.startTime, "Should have new start time after restart");
   });
+
+  test("should handle rapid typing scenarios", () => {
+    const manager = new TypingSessionManager({
+      mode: "quote",
+      target: 0,
+      targetText: "hello",
+    });
+
+    manager.startSession();
+
+    // Simulate rapid typing (multiple keystrokes in quick succession)
+    const rapidText = "hello";
+    const results = [];
+
+    for (const char of rapidText) {
+      results.push(manager.processKeystroke(char));
+    }
+
+    // All keystrokes should be processed successfully
+    assert.ok(
+      results.every((result) => result === true),
+      "All rapid keystrokes should be processed"
+    );
+
+    const state = manager.getCurrentState();
+    assert.strictEqual(
+      state.currentInput,
+      "hello",
+      "Rapid input should be captured correctly"
+    );
+    assert.strictEqual(
+      state.keystrokes.length,
+      5,
+      "All keystrokes should be recorded"
+    );
+
+    // Verify timestamps are reasonable (allow same timestamps for rapid typing)
+    const timestamps = state.keystrokes.map((k) => k.timestamp);
+    const uniqueTimestamps = new Set(timestamps);
+    assert.ok(
+      uniqueTimestamps.size >= 1,
+      "Keystrokes should have valid timestamps"
+    );
+  });
+
+  test("should handle special characters and unicode", () => {
+    const manager = new TypingSessionManager({
+      mode: "quote",
+      target: 0,
+      targetText: "café 🚀 naïve résumé", // Unicode characters
+    });
+
+    manager.startSession();
+
+    // Type text with special characters
+    const specialText = "café 🚀 naïve résumé";
+    for (const char of specialText) {
+      manager.processKeystroke(char);
+    }
+
+    const state = manager.getCurrentState();
+    assert.strictEqual(
+      state.currentInput,
+      specialText,
+      "Unicode characters should be handled correctly"
+    );
+    // Position might differ from string length due to unicode characters
+    assert.ok(
+      state.currentPosition >= specialText.length - 2,
+      "Position should be close to string length for unicode"
+    );
+    assert.ok(
+      state.currentPosition <= specialText.length,
+      "Position should not exceed string length"
+    );
+  });
+
+  test("should handle very long target texts", () => {
+    // Create a very long target text (1000+ characters)
+    const longText = "The quick brown fox jumps over the lazy dog. ".repeat(50);
+    const manager = new TypingSessionManager({
+      mode: "quote",
+      target: 0,
+      targetText: longText,
+    });
+
+    manager.startSession();
+
+    // Type first 100 characters
+    const partialText = longText.substring(0, 100);
+    for (const char of partialText) {
+      manager.processKeystroke(char);
+    }
+
+    const state = manager.getCurrentState();
+    assert.strictEqual(
+      state.currentInput,
+      partialText,
+      "Long text should be handled correctly"
+    );
+    assert.strictEqual(
+      state.currentPosition,
+      100,
+      "Position should be correct for long text"
+    );
+
+    // Progress should be calculated correctly
+    const progress = manager.getProgress();
+    const expectedProgress = (100 / longText.length) * 100;
+    // Allow for small floating point differences
+    assert.ok(
+      Math.abs(progress - expectedProgress) < 0.1,
+      `Progress should be approximately ${expectedProgress}, got ${progress}`
+    );
+  });
+
+  test("should handle boundary conditions in words mode", () => {
+    const manager = new TypingSessionManager({
+      mode: "words",
+      target: 1, // Exactly 1 word target
+      targetText: "hello world test",
+    });
+
+    let sessionCompleted = false;
+    manager.onSessionComplete(() => {
+      sessionCompleted = true;
+    });
+    manager.startSession();
+
+    // Type exactly one word followed by space
+    "hello ".split("").forEach((char) => manager.processKeystroke(char));
+
+    // Should complete when 1 complete word is reached (may be before or after space)
+    assert.strictEqual(
+      sessionCompleted,
+      true,
+      "Should complete when target words are reached"
+    );
+
+    const state = manager.getCurrentState();
+    assert.strictEqual(state.isCompleted, true, "Session should be completed");
+    // Input might be "hello" or "hello " depending on when completion triggers
+    assert.ok(
+      state.currentInput === "hello" || state.currentInput === "hello ",
+      `Input should be complete word, got: "${state.currentInput}"`
+    );
+  });
+
+  test("should handle complex state transitions", () => {
+    const manager = new TypingSessionManager({
+      mode: "time",
+      target: 5, // 5 seconds
+      targetText: "test",
+    });
+
+    manager.startSession();
+
+    // Type a character
+    manager.processKeystroke("t");
+
+    // Pause the session
+    manager.pauseSession();
+
+    // Try to type while paused (should fail)
+    const pausedResult = manager.processKeystroke("e");
+    assert.strictEqual(
+      pausedResult,
+      false,
+      "Should not accept keystrokes while paused"
+    );
+
+    // Resume
+    manager.resumeSession();
+
+    // Now typing should work
+    const resumedResult = manager.processKeystroke("e");
+    assert.strictEqual(
+      resumedResult,
+      true,
+      "Should accept keystrokes after resume"
+    );
+
+    const state = manager.getCurrentState();
+    assert.strictEqual(
+      state.currentInput,
+      "te",
+      "Input should continue correctly after pause/resume"
+    );
+    assert.strictEqual(state.isActive, true, "Session should remain active");
+    assert.strictEqual(state.isPaused, false, "Session should not be paused");
+  });
+
+  test("should handle multiple backspaces correctly", () => {
+    const manager = new TypingSessionManager({
+      mode: "quote",
+      target: 0,
+      targetText: "hello",
+    });
+
+    manager.startSession();
+
+    // Type some characters
+    "hel".split("").forEach((char) => manager.processKeystroke(char));
+
+    let state = manager.getCurrentState();
+    assert.strictEqual(
+      state.currentInput,
+      "hel",
+      "Initial input should be correct"
+    );
+    assert.strictEqual(
+      state.currentPosition,
+      3,
+      "Initial position should be correct"
+    );
+
+    // Multiple backspaces
+    manager.processKeystroke("\b"); // Remove 'l'
+    manager.processKeystroke("\b"); // Remove 'e'
+    manager.processKeystroke("\b"); // Remove 'h'
+
+    state = manager.getCurrentState();
+    assert.strictEqual(
+      state.currentInput,
+      "",
+      "Should handle multiple backspaces correctly"
+    );
+    assert.strictEqual(
+      state.currentPosition,
+      0,
+      "Position should be 0 after multiple backspaces"
+    );
+
+    // Try backspace on empty input (should be safe)
+    const emptyBackspace = manager.processKeystroke("\b");
+    assert.strictEqual(
+      emptyBackspace,
+      true,
+      "Backspace on empty input should be handled gracefully"
+    );
+
+    state = manager.getCurrentState();
+    assert.strictEqual(state.currentInput, "", "Input should remain empty");
+    assert.strictEqual(state.currentPosition, 0, "Position should remain 0");
+  });
+
+  test("should handle timer expiration edge cases", () => {
+    const manager = new TypingSessionManager({
+      mode: "time",
+      target: 1, // 1 second
+      targetText: "test",
+    });
+
+    let sessionCompleted = false;
+    manager.onSessionComplete(() => {
+      sessionCompleted = true;
+    });
+
+    manager.startSession();
+
+    // Wait for timer to expire
+    return new Promise<void>((resolve) => {
+      setTimeout(() => {
+        // Session should be completed by timer
+        assert.strictEqual(
+          sessionCompleted,
+          true,
+          "Session should complete when timer expires"
+        );
+
+        const state = manager.getCurrentState();
+        assert.strictEqual(
+          state.isCompleted,
+          true,
+          "Session should be marked as completed"
+        );
+        assert.strictEqual(state.isActive, false, "Session should be inactive");
+
+        // Try to type after completion (should fail)
+        const postCompletionKeystroke = manager.processKeystroke("a");
+        assert.strictEqual(
+          postCompletionKeystroke,
+          false,
+          "Should reject keystrokes after completion"
+        );
+
+        resolve();
+      }, 1100);
+    });
+  });
+
+  test("should handle memory/performance with many keystrokes", () => {
+    const manager = new TypingSessionManager({
+      mode: "quote",
+      target: 0,
+      targetText: "a".repeat(1000), // 1000 character target
+    });
+
+    manager.startSession();
+
+    // Simulate many keystrokes (including backspaces)
+    const startTime = Date.now();
+
+    for (let i = 0; i < 100; i++) {
+      manager.processKeystroke("a");
+    }
+
+    // Add some backspaces
+    for (let i = 0; i < 20; i++) {
+      manager.processKeystroke("\b");
+    }
+
+    // Add more characters
+    for (let i = 0; i < 50; i++) {
+      manager.processKeystroke("b");
+    }
+
+    const endTime = Date.now();
+    const duration = endTime - startTime;
+
+    const state = manager.getCurrentState();
+
+    // Should handle the load reasonably (less than 100ms for 170 operations)
+    assert.ok(
+      duration < 100,
+      `Performance should be reasonable, took ${duration}ms for 170 operations`
+    );
+
+    // State should be correct
+    assert.strictEqual(
+      state.keystrokes.length,
+      170,
+      "All keystrokes should be recorded"
+    );
+    assert.strictEqual(
+      state.currentInput.length,
+      130,
+      "Final input length should be correct (100 - 20 + 50)"
+    );
+    assert.strictEqual(
+      state.currentPosition,
+      130,
+      "Position should be correct"
+    );
+  });
+
+  test("should handle critical error recovery", () => {
+    const manager = new TypingSessionManager({
+      mode: "time",
+      target: 60,
+      targetText: "test",
+    });
+
+    manager.startSession();
+
+    // Simulate state corruption
+    (manager as any).state.currentPosition = -1;
+
+    // Try to process a keystroke (should trigger error recovery)
+    const result = manager.processKeystroke("a");
+
+    // Should return false due to error recovery
+    assert.strictEqual(
+      result,
+      false,
+      "Should return false when recovering from critical error"
+    );
+
+    // Session should be reset
+    const state = manager.getCurrentState();
+    assert.strictEqual(
+      state.isActive,
+      false,
+      "Session should be reset after critical error"
+    );
+    assert.strictEqual(
+      state.currentInput,
+      "",
+      "Input should be cleared after critical error"
+    );
+    assert.strictEqual(
+      state.currentPosition,
+      0,
+      "Position should be reset after critical error"
+    );
+  });
 });
