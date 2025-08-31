@@ -67,8 +67,14 @@ export class TypingSessionManager {
     if (!config.targetText || config.targetText.trim().length === 0)
       throw new Error("TypingSessionManager: targetText cannot be empty");
 
-    if (config.target < 0)
-      throw new Error("TypingSessionManager: targest must be positive");
+    // For time and words modes, target must be positive
+    if (
+      (config.mode === "time" || config.mode === "words") &&
+      config.target <= 0
+    )
+      throw new Error("TypingSessionManager: target must be positive");
+
+    // For quote mode, target is ignored so any value is fine
   }
 
   public startSession(): void {

@@ -138,8 +138,8 @@ suite("TypingSessionManager Tests", () => {
     manager.processKeystroke("x");
 
     let state = manager.getCurrentState();
-    assert.strictEqual(state.currentInput, "tex"),
-      assert.strictEqual(state.currentPosition, 3);
+    assert.strictEqual(state.currentInput, "tex");
+    assert.strictEqual(state.currentPosition, 3);
 
     const backspaceResult = manager.processKeystroke("\b");
     assert.strictEqual(backspaceResult, true);
@@ -528,39 +528,88 @@ suite("TypingSessionManager Tests", () => {
       target: 30,
       targetText: "Valid text",
     });
-    assert.ok(validManager.getSessionId(), "Valid config should create manager");
+    assert.ok(
+      validManager.getSessionId(),
+      "Valid config should create manager"
+    );
   });
 
   test("should track elapsed and remaining time correctly", () => {
-    const manager = new TypingSessionManager({
+    // Test non-time mode first
+    const quoteManager = new TypingSessionManager({
+      mode: "quote",
+      target: 0,
+      targetText: "test text",
+    });
+
+    // For non-time modes, remaining time should be 0
+    assert.strictEqual(
+      quoteManager.getElapsedTime(),
+      0,
+      "Elapsed time should be 0 before start"
+    );
+    assert.strictEqual(
+      quoteManager.getRemainingTime(),
+      0,
+      "Remaining time should be 0 for non-time mode"
+    );
+
+    // Now test time mode
+    const timeManager = new TypingSessionManager({
       mode: "time",
       target: 10, // 10 seconds
       targetText: "test text",
     });
 
-    // Before starting, elapsed should be 0, remaining should be 0 (non-time mode default)
-    assert.strictEqual(manager.getElapsedTime(), 0, "Elapsed time should be 0 before start");
-    assert.strictEqual(manager.getRemainingTime(), 0, "Remaining time should be 0 for non-time mode");
+    // Before starting time mode, elapsed should be 0, remaining should be target (10)
+    assert.strictEqual(
+      timeManager.getElapsedTime(),
+      0,
+      "Elapsed time should be 0 before start"
+    );
+    assert.strictEqual(
+      timeManager.getRemainingTime(),
+      10,
+      "Remaining time should equal target before start"
+    );
 
-    manager.startSession();
+    timeManager.startSession();
 
     // Immediately after start, elapsed should be very small, remaining should be close to target
-    const elapsedAfterStart = manager.getElapsedTime();
-    const remainingAfterStart = manager.getRemainingTime();
+    const elapsedAfterStart = timeManager.getElapsedTime();
+    const remainingAfterStart = timeManager.getRemainingTime();
 
-    assert.ok(elapsedAfterStart >= 0, "Elapsed time should be non-negative after start");
-    assert.ok(elapsedAfterStart < 1, "Elapsed time should be very small after start");
-    assert.ok(remainingAfterStart > 9, "Remaining time should be close to target after start");
-    assert.ok(remainingAfterStart <= 10, "Remaining time should not exceed target");
+    assert.ok(
+      elapsedAfterStart >= 0,
+      "Elapsed time should be non-negative after start"
+    );
+    assert.ok(
+      elapsedAfterStart < 1,
+      "Elapsed time should be very small after start"
+    );
+    assert.ok(
+      remainingAfterStart > 9,
+      "Remaining time should be close to target after start"
+    );
+    assert.ok(
+      remainingAfterStart <= 10,
+      "Remaining time should not exceed target"
+    );
 
     // Simulate some time passing (by waiting)
     return new Promise<void>((resolve) => {
       setTimeout(() => {
-        const elapsedAfterWait = manager.getElapsedTime();
-        const remainingAfterWait = manager.getRemainingTime();
+        const elapsedAfterWait = timeManager.getElapsedTime();
+        const remainingAfterWait = timeManager.getRemainingTime();
 
-        assert.ok(elapsedAfterWait >= 0.5, "Elapsed time should increase after waiting");
-        assert.ok(remainingAfterWait <= 9.5, "Remaining time should decrease after waiting");
+        assert.ok(
+          elapsedAfterWait >= 0.5,
+          "Elapsed time should increase after waiting"
+        );
+        assert.ok(
+          remainingAfterWait <= 9.5,
+          "Remaining time should decrease after waiting"
+        );
         assert.strictEqual(
           Math.round(elapsedAfterWait + remainingAfterWait),
           10,
@@ -598,19 +647,55 @@ suite("TypingSessionManager Tests", () => {
 
     // Verify all state is reset
     state = manager.getCurrentState();
-    assert.strictEqual(state.isActive, false, "Session should not be active after reset");
-    assert.strictEqual(state.isPaused, false, "Session should not be paused after reset");
-    assert.strictEqual(state.isCompleted, false, "Session should not be completed after reset");
-    assert.strictEqual(state.currentInput, "", "Input should be empty after reset");
-    assert.strictEqual(state.currentPosition, 0, "Position should be 0 after reset");
-    assert.strictEqual(state.keystrokes.length, 0, "Keystrokes should be empty after reset");
-    assert.strictEqual(state.startTime, null, "Start time should be null after reset");
-    assert.strictEqual(state.endTime, null, "End time should be null after reset");
+    assert.strictEqual(
+      state.isActive,
+      false,
+      "Session should not be active after reset"
+    );
+    assert.strictEqual(
+      state.isPaused,
+      false,
+      "Session should not be paused after reset"
+    );
+    assert.strictEqual(
+      state.isCompleted,
+      false,
+      "Session should not be completed after reset"
+    );
+    assert.strictEqual(
+      state.currentInput,
+      "",
+      "Input should be empty after reset"
+    );
+    assert.strictEqual(
+      state.currentPosition,
+      0,
+      "Position should be 0 after reset"
+    );
+    assert.strictEqual(
+      state.keystrokes.length,
+      0,
+      "Keystrokes should be empty after reset"
+    );
+    assert.strictEqual(
+      state.startTime,
+      null,
+      "Start time should be null after reset"
+    );
+    assert.strictEqual(
+      state.endTime,
+      null,
+      "End time should be null after reset"
+    );
 
     // Verify session can be restarted
     manager.startSession();
     state = manager.getCurrentState();
-    assert.strictEqual(state.isActive, true, "Session should be active after restart");
+    assert.strictEqual(
+      state.isActive,
+      true,
+      "Session should be active after restart"
+    );
     assert.ok(state.startTime, "Should have new start time after restart");
   });
 });
