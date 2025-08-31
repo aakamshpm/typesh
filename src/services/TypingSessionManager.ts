@@ -238,8 +238,43 @@ export class TypingSessionManager {
   private checkCompletionConditions(): void {
     switch (this.config.mode) {
       case "words":
-        const wordCount = this.state.currentInput.trim().split(/\s+/).length;
-        if (wordCount >= this.config.target) this.endSession();
+        // Count complete words by comparing with target text
+        const input = this.state.currentInput;
+        const target = this.config.targetText;
+
+        if (input.length === 0) return;
+
+        // Check if input matches target so far
+        if (!target.startsWith(input)) return;
+
+        // If we've typed the complete target, count all words
+        if (input.length === target.length) {
+          const wordCount = target.trim().split(/\s+/).length;
+          if (wordCount >= this.config.target) this.endSession();
+          return;
+        }
+
+        // Split input and target into words
+        const inputWords = input.trim().split(/\s+/);
+        const targetWords = target.trim().split(/\s+/);
+
+        let completeWordCount = 0;
+
+        // Check each word in input
+        for (let i = 0; i < inputWords.length; i++) {
+          // If this is not the last word in input, it's complete (followed by space)
+          if (i < inputWords.length - 1) {
+            completeWordCount++;
+          } else {
+            // This is the last word - check if it matches the target word
+            if (i < targetWords.length && inputWords[i] === targetWords[i]) {
+              completeWordCount++;
+            }
+            // If it doesn't match, it's incomplete - don't count it
+          }
+        }
+
+        if (completeWordCount >= this.config.target) this.endSession();
         break;
       case "quote":
         if (this.state.currentInput.length >= this.config.targetText.length)
