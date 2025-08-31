@@ -122,4 +122,29 @@ suite("TypingSessionManager Tests", () => {
     );
     assert.ok(firstKeystroke.timestamp > 0, "Timestamp should be positive");
   });
+
+  test("should handle backspace correctly", () => {
+    const manager = new TypingSessionManager({
+      mode: "quote",
+      target: 0,
+      targetText: "test",
+    });
+
+    manager.startSession();
+
+    manager.processKeystroke("t");
+    manager.processKeystroke("e");
+    manager.processKeystroke("x");
+
+    let state = manager.getCurrentState();
+    assert.strictEqual(state.currentInput, "tex"),
+      assert.strictEqual(state.currentPosition, 3);
+
+    const backspaceResult = manager.processKeystroke("\b");
+    assert.strictEqual(backspaceResult, true);
+
+    state = manager.getCurrentState();
+    assert.strictEqual(state.currentInput, "te");
+    assert.strictEqual(state.currentPosition, 2);
+  });
 });
