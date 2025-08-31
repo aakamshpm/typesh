@@ -5,7 +5,7 @@ export type SessionMode = "time" | "words" | "quote";
 export interface SessionConfig {
   sessionId: string;
   mode: SessionMode;
-  target: number; // seconds for time mode, word count for words
+  target: number; // seconds for time mode, word count for words (0 for quote mode)
   targetText: string;
 }
 
