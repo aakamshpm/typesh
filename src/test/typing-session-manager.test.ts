@@ -1,5 +1,6 @@
 import * as assert from "assert";
 import { TypingSessionManager } from "../services/TypingSessionManager";
+import { TypingSession } from "../models/TypingModel";
 
 suite("TypingSessionManager Tests", () => {
   test("should initialize with correct configuration", () => {
@@ -146,5 +147,134 @@ suite("TypingSessionManager Tests", () => {
     state = manager.getCurrentState();
     assert.strictEqual(state.currentInput, "te");
     assert.strictEqual(state.currentPosition, 2);
+  });
+
+  test("should complete session when target is reached in quote mode", () => {
+    const manager = new TypingSessionManager({
+      mode: "quote",
+      target: 0, // Not used in quote mode
+      targetText: "hi", // 2 characters
+    });
+
+    let sessionCompleted = false;
+    let completedSession: TypingSession | null = null;
+
+    // Set up completion callback
+    manager.onSessionComplete((session) => {
+      sessionCompleted = true;
+      completedSession = session;
+    });
+
+    manager.startSession();
+
+    // Type the complete text
+    manager.processKeystroke("h");
+    manager.processKeystroke("i");
+
+    // Session should complete automatically
+    assert.strictEqual(
+      sessionCompleted,
+      true,
+      "Session should complete when text is finished"
+    );
+
+    const state = manager.getCurrentState();
+    assert.strictEqual(
+      state.isCompleted,
+      true,
+      "Session state should be completed"
+    );
+    assert.strictEqual(
+      state.isActive,
+      false,
+      "Session should be inactive when completed"
+    );
+
+    // Verify the completed session data
+    assert.ok(completedSession, "Completed session should be available");
+    assert.strictEqual(
+      (completedSession as TypingSession).id,
+      manager.getSessionId(),
+      "Session ID should match"
+    );
+    assert.strictEqual(
+      (completedSession as TypingSession).userInput,
+      "hi",
+      "User input should be recorded"
+    );
+    assert.strictEqual(
+      (completedSession as TypingSession).targetText,
+      "hi",
+      "Target text should be recorded"
+    );
+    assert.ok(
+      (completedSession as TypingSession).endTime,
+      "End time should be recorded"
+    );
+  });
+
+  test("should complete session in words mode", () => {
+    const manager = new TypingSessionManager({
+      mode: "words",
+      target: 2,
+      targetText: "hello world test",
+    });
+
+    let sessionCompleted = false;
+    let completedSession: TypingSession | null = null;
+
+    manager.onSessionComplete((session) => {
+      sessionCompleted = true;
+      completedSession = session;
+    });
+
+    manager.startSession();
+
+    "hello ".split("").forEach((char) => manager.processKeystroke(char));
+
+    assert.strictEqual(
+      sessionCompleted,
+      false,
+      "Should not complete after 1 word"
+    );
+
+    "world".split("").forEach((char) => manager.processKeystroke(char));
+
+    // Should complete now (2 words reached)
+    assert.strictEqual(sessionCompleted, true, "Should complete after 2 words");
+
+    const state = manager.getCurrentState();
+    assert.strictEqual(
+      state.isCompleted,
+      true,
+      "Session state should be completed"
+    );
+    assert.strictEqual(
+      state.isActive,
+      false,
+      "Session should be inactive when completed"
+    );
+
+    // Verify the completed session data
+    assert.ok(completedSession, "Completed session should be available");
+    assert.strictEqual(
+      (completedSession as TypingSession).id,
+      manager.getSessionId(),
+      "Session ID should match"
+    );
+    assert.strictEqual(
+      (completedSession as TypingSession).userInput,
+      "hello world",
+      "User input should be recorded"
+    );
+    assert.strictEqual(
+      (completedSession as TypingSession).targetText,
+      "hello world test",
+      "Target text should be recorded"
+    );
+    assert.ok(
+      (completedSession as TypingSession).endTime,
+      "End time should be recorded"
+    );
   });
 });
