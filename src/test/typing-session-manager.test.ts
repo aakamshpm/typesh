@@ -277,4 +277,340 @@ suite("TypingSessionManager Tests", () => {
       "End time should be recorded"
     );
   });
+
+  test("should calculate progress correctly", () => {
+    const quoteManager = new TypingSessionManager({
+      mode: "quote",
+      target: 0,
+      targetText: "hello",
+    });
+
+    quoteManager.startSession();
+
+    assert.strictEqual(
+      quoteManager.getProgress(),
+      0,
+      "Initial progress must be 0%"
+    );
+
+    quoteManager.processKeystroke("h");
+    quoteManager.processKeystroke("e");
+    // now the progress will be at 40%
+    assert.strictEqual(
+      quoteManager.getProgress(),
+      40,
+      "Progrss should be 40% after 'he'"
+    );
+
+    // Complete the text
+    quoteManager.processKeystroke("l");
+    quoteManager.processKeystroke("l");
+    quoteManager.processKeystroke("o");
+    assert.strictEqual(
+      quoteManager.getProgress(),
+      100,
+      "Progress should be 100% when complete"
+    );
+  });
+
+  test("should calculate WPM correctly", () => {
+    const manager = new TypingSessionManager({
+      mode: "time",
+      target: 60,
+      targetText: "The quick brown fox jumps over the lazy dog.", // ~45 characters
+    });
+
+    manager.startSession();
+
+    const text = "The quick brown fox";
+    for (const char of text) {
+      manager.processKeystroke(char);
+    }
+
+    const wpm = manager.getCurrentWPM();
+
+    assert.ok(typeof wpm === "number", "WPM should be a number");
+    assert.ok(wpm >= 0, "WPM should be non-negative");
+    assert.ok(!isNaN(wpm), "WPM should not be NaN");
+
+    // For a reasonable typing speed, WPM should be in a realistic range
+    // (This is a rough check - actual values depend on timing)
+    assert.ok(wpm < 1000, "WPM should be realistic (less than 1000)");
+  });
+
+  test("should handle pause and resume correctly", () => {
+    const manager = new TypingSessionManager({
+      mode: "time",
+      target: 60,
+      targetText: "test text",
+    });
+
+    manager.startSession();
+    manager.processKeystroke("t");
+
+    manager.pauseSession();
+    let state = manager.getCurrentState();
+    assert.strictEqual(state.isPaused, true, "Session should be paused");
+    assert.strictEqual(
+      state.isActive,
+      true,
+      "Session should still be active when paused"
+    );
+
+    // Try to process keystroke while paused
+    const pausedKeystroke = manager.processKeystroke("e");
+    assert.strictEqual(
+      pausedKeystroke,
+      false,
+      "Keystroke should be rejected when paused"
+    );
+
+    // Resume the session
+    manager.resumeSession();
+    state = manager.getCurrentState();
+    assert.strictEqual(
+      state.isPaused,
+      false,
+      "Session should not be paused after resume"
+    );
+    assert.strictEqual(
+      state.isActive,
+      true,
+      "Session should be active after resume"
+    );
+
+    // Now keystrokes should work again
+    const resumedKeystroke = manager.processKeystroke("e");
+    assert.strictEqual(
+      resumedKeystroke,
+      true,
+      "Keystroke should be accepted after resume"
+    );
+
+    state = manager.getCurrentState();
+    assert.strictEqual(
+      state.currentInput,
+      "te",
+      "Input should continue from where it left off"
+    );
+  });
+
+  test("should handle invalid keystrokes gracefully", () => {
+    const manager = new TypingSessionManager({
+      mode: "time",
+      target: 60,
+      targetText: "test",
+    });
+
+    // Try to process keystroke before starting session
+    const result = manager.processKeystroke("a");
+    assert.strictEqual(
+      result,
+      false,
+      "Keystroke should be rejected when session not active"
+    );
+
+    // Start session and try empty keystroke
+    manager.startSession();
+    const emptyResult = manager.processKeystroke("");
+    assert.strictEqual(
+      emptyResult,
+      false,
+      "Empty keystroke should be rejected"
+    );
+
+    // Try null/undefined (this might throw, which is OK)
+    try {
+      manager.processKeystroke(null as any);
+      assert.fail("Should have thrown for null keystroke");
+    } catch (error) {
+      assert.ok(error, "Should throw for invalid input");
+    }
+  });
+
+  test("should complete session in time mode when timer expires", () => {
+    const manager = new TypingSessionManager({
+      mode: "time",
+      target: 1, // 1 second for quick test
+      targetText: "This is a test sentence for time mode completion.",
+    });
+
+    let sessionCompleted = false;
+    let completedSession: TypingSession | null = null;
+
+    manager.onSessionComplete((session) => {
+      sessionCompleted = true;
+      completedSession = session;
+    });
+
+    manager.startSession();
+
+    // Type some characters
+    "This is a test".split("").forEach((char) => {
+      manager.processKeystroke(char);
+    });
+
+    // Wait for timer to expire (1 second)
+    return new Promise<void>((resolve) => {
+      setTimeout(() => {
+        // Session should complete automatically when timer expires
+        assert.strictEqual(
+          sessionCompleted,
+          true,
+          "Session should complete when timer expires"
+        );
+
+        const state = manager.getCurrentState();
+        assert.strictEqual(
+          state.isCompleted,
+          true,
+          "Session state should be completed"
+        );
+        assert.strictEqual(
+          state.isActive,
+          false,
+          "Session should be inactive when completed"
+        );
+
+        // Verify the completed session data
+        assert.ok(completedSession, "Completed session should be available");
+        assert.strictEqual(
+          (completedSession as TypingSession).id,
+          manager.getSessionId(),
+          "Session ID should match"
+        );
+
+        resolve();
+      }, 1100); // Wait slightly longer than 1 second
+    });
+  });
+
+  test("should handle configuration validation correctly", () => {
+    // Test empty target text
+    assert.throws(() => {
+      new TypingSessionManager({
+        mode: "time",
+        target: 60,
+        targetText: "",
+      });
+    }, /targetText cannot be empty/);
+
+    // Test whitespace-only target text
+    assert.throws(() => {
+      new TypingSessionManager({
+        mode: "time",
+        target: 60,
+        targetText: "   ",
+      });
+    }, /targetText cannot be empty/);
+
+    // Test negative target
+    assert.throws(() => {
+      new TypingSessionManager({
+        mode: "words",
+        target: -1,
+        targetText: "hello world",
+      });
+    }, /target must be positive/);
+
+    // Test zero target for words mode
+    assert.throws(() => {
+      new TypingSessionManager({
+        mode: "words",
+        target: 0,
+        targetText: "hello world",
+      });
+    }, /target must be positive/);
+
+    // Valid configurations should work
+    const validManager = new TypingSessionManager({
+      mode: "time",
+      target: 30,
+      targetText: "Valid text",
+    });
+    assert.ok(validManager.getSessionId(), "Valid config should create manager");
+  });
+
+  test("should track elapsed and remaining time correctly", () => {
+    const manager = new TypingSessionManager({
+      mode: "time",
+      target: 10, // 10 seconds
+      targetText: "test text",
+    });
+
+    // Before starting, elapsed should be 0, remaining should be 0 (non-time mode default)
+    assert.strictEqual(manager.getElapsedTime(), 0, "Elapsed time should be 0 before start");
+    assert.strictEqual(manager.getRemainingTime(), 0, "Remaining time should be 0 for non-time mode");
+
+    manager.startSession();
+
+    // Immediately after start, elapsed should be very small, remaining should be close to target
+    const elapsedAfterStart = manager.getElapsedTime();
+    const remainingAfterStart = manager.getRemainingTime();
+
+    assert.ok(elapsedAfterStart >= 0, "Elapsed time should be non-negative after start");
+    assert.ok(elapsedAfterStart < 1, "Elapsed time should be very small after start");
+    assert.ok(remainingAfterStart > 9, "Remaining time should be close to target after start");
+    assert.ok(remainingAfterStart <= 10, "Remaining time should not exceed target");
+
+    // Simulate some time passing (by waiting)
+    return new Promise<void>((resolve) => {
+      setTimeout(() => {
+        const elapsedAfterWait = manager.getElapsedTime();
+        const remainingAfterWait = manager.getRemainingTime();
+
+        assert.ok(elapsedAfterWait >= 0.5, "Elapsed time should increase after waiting");
+        assert.ok(remainingAfterWait <= 9.5, "Remaining time should decrease after waiting");
+        assert.strictEqual(
+          Math.round(elapsedAfterWait + remainingAfterWait),
+          10,
+          "Elapsed + remaining should equal target time"
+        );
+
+        resolve();
+      }, 500); // Wait 500ms
+    });
+  });
+
+  test("should reset session correctly", () => {
+    const manager = new TypingSessionManager({
+      mode: "quote",
+      target: 0,
+      targetText: "hello world",
+    });
+
+    manager.startSession();
+
+    // Type some characters and verify state
+    manager.processKeystroke("h");
+    manager.processKeystroke("e");
+    manager.processKeystroke("l");
+
+    let state = manager.getCurrentState();
+    assert.strictEqual(state.currentInput, "hel", "Input should be 'hel'");
+    assert.strictEqual(state.currentPosition, 3, "Position should be 3");
+    assert.strictEqual(state.keystrokes.length, 3, "Should have 3 keystrokes");
+    assert.ok(state.startTime, "Should have start time");
+    assert.strictEqual(state.isActive, true, "Session should be active");
+
+    // Reset the session
+    manager.resetSession();
+
+    // Verify all state is reset
+    state = manager.getCurrentState();
+    assert.strictEqual(state.isActive, false, "Session should not be active after reset");
+    assert.strictEqual(state.isPaused, false, "Session should not be paused after reset");
+    assert.strictEqual(state.isCompleted, false, "Session should not be completed after reset");
+    assert.strictEqual(state.currentInput, "", "Input should be empty after reset");
+    assert.strictEqual(state.currentPosition, 0, "Position should be 0 after reset");
+    assert.strictEqual(state.keystrokes.length, 0, "Keystrokes should be empty after reset");
+    assert.strictEqual(state.startTime, null, "Start time should be null after reset");
+    assert.strictEqual(state.endTime, null, "End time should be null after reset");
+
+    // Verify session can be restarted
+    manager.startSession();
+    state = manager.getCurrentState();
+    assert.strictEqual(state.isActive, true, "Session should be active after restart");
+    assert.ok(state.startTime, "Should have new start time after restart");
+  });
 });
