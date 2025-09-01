@@ -147,6 +147,11 @@ export class StorageService {
 
       if (filteredParagraphs.length === initialLength) return false;
 
+      await this.context.globalState.update(
+        StorageService.KEYS.PARAGRAPHS,
+        filteredParagraphs
+      );
+
       return true;
     } catch (error) {
       vscode.window.showErrorMessage(`Failed to delete paragraph: ${error}`);
