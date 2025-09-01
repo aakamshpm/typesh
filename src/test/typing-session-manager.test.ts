@@ -1066,7 +1066,6 @@ suite("TypingSessionManager Tests", () => {
       "Should return false when recovering from critical error"
     );
 
-    // Session should be reset
     const state = manager.getCurrentState();
     assert.strictEqual(
       state.isActive,

@@ -16,6 +16,7 @@ export function analyzeKeypressAccuracy(
     if (keystroke.key === "\b") {
       if (position > 0) {
         position--;
+        // we go back to prev position and skip backspace as a count for totalKeyPresses
       }
       continue;
     }
