@@ -4,6 +4,7 @@ import { calculateWPM, calculateGrossWPM } from "./components/wpmCalculator";
 import {
   analyzeKeypressAccuracy,
   calculateCharacterStats,
+  calculateCorrectedErrors,
   calculateCorrectWords,
   countAllTypedCharacters,
 } from "./components/calculations";
@@ -40,12 +41,14 @@ export class TypingAnalyzer {
     );
 
     const characterStats = calculateCharacterStats(targetText, userInput);
+    const correctedErrors = calculateCorrectedErrors(keystrokes, targetText);
 
     return {
       wpm,
       grossWPM,
       accuracy: Math.round(accuracy * 100) / 100,
       errorCount,
+      correctedErrors,
       consistencyScore,
       errorPatterns,
       characterStats,

@@ -101,3 +101,36 @@ export function countAllTypedCharacters(keystrokes: Keystroke[]): number {
 
   return totalTypedChars;
 }
+
+export function calculateCorrectedErrors(
+  keystrokes: Keystroke[],
+  targetText: string
+): number {
+  let position = 0;
+  let currentInput = "";
+  let correctedErrors = 0;
+
+  for (const keystroke of keystrokes) {
+    if (keystroke.key === "\b") {
+      if (currentInput.length > 0) {
+        // here removedChar is the key to be removed
+        const removedChar = currentInput[currentInput.length - 1];
+        currentInput = currentInput.slice(0, -1);
+        position = Math.max(0, position - 1); // decrement the position after the char was deleted
+
+        // check if removed char was actually wrong
+        if (
+          position < targetText.length &&
+          removedChar !== targetText[position]
+        )
+          correctedErrors++;
+      }
+    } else {
+      // if not backspace, it would be a regular character and we can proceed incrementing the position
+      currentInput += keystroke;
+      position++;
+    }
+  }
+
+  return correctedErrors;
+}

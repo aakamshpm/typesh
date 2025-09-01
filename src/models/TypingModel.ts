@@ -20,6 +20,7 @@ export interface TypingStats {
   grossWPM: number;
   accuracy: number;
   errorCount: number;
+  correctedErrors: number;
   consistencyScore: number;
   errorPatterns: ErrorPattern[];
 
