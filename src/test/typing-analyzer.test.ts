@@ -202,4 +202,124 @@ suite("Typing Analyzer tests", () => {
     // 25 characters = 5 words, in 1 minute = 5 gross WPM
     assert.strictEqual(stats.grossWPM, 5);
   });
+
+  test("should analyze error patterns correctly", () => {
+    const session = createMockSession({
+      targetText: "hello world test",
+      userInput: "hxllo world txst", // Multiple 'e' -> 'x' substitutions
+      keystrokes: createMockKeystrokes("hxllo world txst"),
+    });
+
+    const stats = TypingAnalyzer.analyzeSession(session);
+
+    // Should detect the common 'e' -> 'x' mistake
+    const eError = stats.errorPatterns.find((p) => p.character === "e");
+    assert.ok(eError, "Should detect 'e' errors");
+    assert.ok(eError!.frequency >= 2, "Should detect multiple 'e' errors");
+    assert.ok(
+      eError!.commonMistakes.includes("x"),
+      "Should track 'x' as common mistake for 'e'"
+    );
+  });
+
+  test("should handle sessions with extra characters", () => {
+    const keystrokes = createMockKeystrokes("hello world extra"); // Extra characters
+    const session = createMockSession({
+      targetText: "hello world",
+      userInput: "hello world extra",
+      keystrokes,
+    });
+
+    const stats = TypingAnalyzer.analyzeSession(session);
+
+    // Should have extra characters
+    assert.strictEqual(stats.characterStats.extra, 6); // " extra".length
+    assert.strictEqual(stats.characterStats.correct, 11); // "hello world".length
+    assert.ok(stats.accuracy < 100); // Accuracy affected by extra characters
+  });
+
+  test("should handle unicode and special characters", () => {
+    const session = createMockSession({
+      targetText: "café résumé naïve",
+      userInput: "café résumé naïve",
+      keystrokes: createMockKeystrokes("café résumé naïve"),
+    });
+
+    const stats = TypingAnalyzer.analyzeSession(session);
+
+    // Should handle unicode correctly
+    assert.strictEqual(stats.accuracy, 100);
+    assert.strictEqual(stats.errorCount, 0);
+    assert.ok(stats.characterStats.correct > 15); // Should count unicode characters
+  });
+
+  test("should handle long typing sessions with multiple errors", () => {
+    const longText =
+      "The quick brown fox jumps over the lazy dog and runs away fast.";
+    const userText =
+      "The quikc brown fox jmps over the lazy dog and runs away fast."; // Multiple errors
+
+    const session = createMockSession({
+      targetText: longText,
+      userInput: userText,
+      keystrokes: createMockKeystrokes(userText),
+    });
+
+    const stats = TypingAnalyzer.analyzeSession(session);
+
+    // Should handle long text with multiple errors
+    assert.ok(stats.errorCount > 0);
+    assert.ok(stats.accuracy < 100);
+    assert.ok(stats.wpm > 0);
+    assert.ok(stats.grossWPM > 0);
+    // Both WPM calculations should be reasonable numbers
+    assert.ok(stats.wpm > 10); // Should be a decent typing speed
+    assert.ok(stats.grossWPM > 10);
+  });
+
+  test("should handle heavy correction scenarios", () => {
+    const keystrokes: Keystroke[] = [
+      { key: "h", timestamp: 1000, timeSinceLast: 0 },
+      { key: "x", timestamp: 1100, timeSinceLast: 100 }, // Wrong
+      { key: "\b", timestamp: 1200, timeSinceLast: 100 }, // Correct
+      { key: "e", timestamp: 1300, timeSinceLast: 100 },
+      { key: "y", timestamp: 1400, timeSinceLast: 100 }, // Wrong
+      { key: "\b", timestamp: 1500, timeSinceLast: 100 }, // Correct
+      { key: "l", timestamp: 1600, timeSinceLast: 100 },
+      { key: "z", timestamp: 1700, timeSinceLast: 100 }, // Wrong
+      { key: "\b", timestamp: 1800, timeSinceLast: 100 }, // Correct
+      { key: "l", timestamp: 1900, timeSinceLast: 100 },
+      { key: "o", timestamp: 2000, timeSinceLast: 100 },
+    ];
+
+    const session = createMockSession({
+      targetText: "hello",
+      userInput: "hello",
+      keystrokes,
+    });
+
+    const stats = TypingAnalyzer.analyzeSession(session);
+
+    // Final result should be correct despite many corrections
+    assert.strictEqual(stats.errorCount, 0);
+    assert.strictEqual(stats.correctedErrors, 3); // Three corrections made
+    assert.ok(stats.accuracy < 100); // But accuracy affected by wrong keystrokes
+  });
+
+  test("should handle partial word completions", () => {
+    const session = createMockSession({
+      targetText: "hello world test case",
+      userInput: "hello worl", // Partial completion
+      keystrokes: createMockKeystrokes("hello worl"),
+    });
+
+    const stats = TypingAnalyzer.analyzeSession(session);
+
+    // Should calculate partial word correctly
+    assert.strictEqual(stats.characterStats.correct, 10); // "hello worl" matches first 10 chars
+    assert.strictEqual(stats.characterStats.missed, 11); // "d test case" (11 chars)
+    assert.strictEqual(stats.characterStats.incorrect, 0); // No mismatches, just truncation
+    assert.strictEqual(stats.characterStats.extra, 0); // No extra characters
+    assert.ok(stats.wpm >= 0); // Should still calculate WPM
+  });
 });
