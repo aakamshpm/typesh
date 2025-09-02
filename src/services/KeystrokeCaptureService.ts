@@ -34,7 +34,8 @@ export class KeystrokeCaptureService {
   constructor(options: CaptureOptions = {}) {
     try {
       this.options = {
-        element: options.element || document.body,
+        element:
+          options.element !== undefined ? options.element : document.body,
         preventDefault: options.preventDefault ?? true,
         captureSpecialKeys: options.captureSpecialKeys ?? true,
         enabledKeys: options.enabledKeys || [],
@@ -256,7 +257,7 @@ export class KeystrokeCaptureService {
           `${SERVICE_NAME}: No handlers registered, capture not started`
         );
 
-      if (!this.isElementValid)
+      if (!this.isElementValid())
         throw new Error("Target element is no longer valid");
 
       this.attachEventListeners();
@@ -401,12 +402,8 @@ export class KeystrokeCaptureService {
 
     const normalizedKey = this.normalizeKey(event);
 
-    if (this.isSpecialKey(normalizedKey)) {
-      // If the user configured the service to capture special keys
-      if (this.options.captureSpecialKeys) {
-        this.dispatchKeystroke(normalizedKey, event);
-      }
-    }
+    // Dispatch keystroke for all keys that pass the filter
+    this.dispatchKeystroke(normalizedKey, event);
 
     if (this.shouldPreventDefault(event)) {
       event.preventDefault();
@@ -483,6 +480,8 @@ export class KeystrokeCaptureService {
 
   private shouldProcessKey(event: KeyboardEvent): boolean {
     if (event.ctrlKey || event.altKey || event.metaKey) return false;
+
+    if (!event.key || event.key.trim() === "") return false;
 
     if (this.options.disabledKeys.includes(event.key)) return false;
 
