@@ -4,7 +4,7 @@ export type FocusHandler = () => void;
 export type BlurHandler = () => void;
 
 export interface CaptureOptions {
-  element?: HTMLElement;
+  element: HTMLElement; // Made required
   preventDefault?: boolean;
   captureSpecialKeys?: boolean;
   enabledKeys?: string[];
@@ -31,11 +31,10 @@ export class KeystrokeCaptureService {
   private boundFocusHandler: () => void;
   private boundBlurHandler: () => void;
 
-  constructor(options: CaptureOptions = {}) {
+  constructor(options: CaptureOptions) {
     try {
       this.options = {
-        element:
-          options.element !== undefined ? options.element : document.body,
+        element: options.element,
         preventDefault: options.preventDefault ?? true,
         captureSpecialKeys: options.captureSpecialKeys ?? true,
         enabledKeys: options.enabledKeys || [],
@@ -481,7 +480,7 @@ export class KeystrokeCaptureService {
   private shouldProcessKey(event: KeyboardEvent): boolean {
     if (event.ctrlKey || event.altKey || event.metaKey) return false;
 
-    if (!event.key || event.key.trim() === "") return false;
+    if (!event.key) return false;
 
     if (this.options.disabledKeys.includes(event.key)) return false;
 
