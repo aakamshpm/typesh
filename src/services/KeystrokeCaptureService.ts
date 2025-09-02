@@ -4,7 +4,7 @@ export type FocusHandler = () => void;
 export type BlurHandler = () => void;
 
 export interface CaptureOptions {
-  element: HTMLElement; // Made required
+  element: HTMLElement;
   preventDefault?: boolean;
   captureSpecialKeys?: boolean;
   enabledKeys?: string[];
