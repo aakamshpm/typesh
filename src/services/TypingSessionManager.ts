@@ -69,12 +69,12 @@ export class TypingSessionManager {
 
     // For time and words modes, target must be positive
     if (
-      (config.mode === "time" || config.mode === "words") &&
+      (config.mode === "tick-tick" || config.mode === "words") &&
       config.target <= 0
     )
       throw new Error("TypingSessionManager: target must be positive");
 
-    // For quote mode, target is ignored so any value is fine
+    // For passage mode, target is ignored so any value is fine
   }
 
   public startSession(): void {
@@ -84,7 +84,7 @@ export class TypingSessionManager {
     this.state.startTime = new Date();
     this.lastKeystrokeTime = Date.now();
 
-    if (this.config.mode === "time") this.startTimer();
+    if (this.config.mode === "tick-tick") this.startTimer();
 
     this.notifyProgress();
   }
@@ -104,7 +104,7 @@ export class TypingSessionManager {
     this.state.isPaused = false;
     this.lastKeystrokeTime = Date.now();
 
-    if (this.config.mode === "time") this.resumeTimerWithRemaining();
+    if (this.config.mode === "tick-tick") this.resumeTimerWithRemaining();
 
     this.pausedAt = null; // clear paused at time if the mode is not timer mode
 
@@ -244,7 +244,6 @@ export class TypingSessionManager {
   private checkCompletionConditions(): void {
     switch (this.config.mode) {
       case "words":
-        // Count complete words by comparing with target text
         const input = this.state.currentInput;
         const target = this.config.targetText;
 
@@ -260,7 +259,6 @@ export class TypingSessionManager {
           return;
         }
 
-        // Split input and target into words
         const inputWords = input.trim().split(/\s+/);
         const targetWords = target.trim().split(/\s+/);
 
@@ -282,11 +280,11 @@ export class TypingSessionManager {
 
         if (completeWordCount >= this.config.target) this.endSession();
         break;
-      case "quote":
+      case "passage":
         if (this.state.currentInput.length >= this.config.targetText.length)
           this.endSession();
         break;
-      case "time": // time mode is automatically handled by timer, although we need to add a check if user completed typing within the given timestamp
+      case "tick-tick": // tick-tick mode is automatically handled by timer, although we need to add a check if user completed typing within the given timestamp
         if (this.state.currentInput.length >= this.config.targetText.length)
           this.endSession();
         break;
@@ -305,16 +303,16 @@ export class TypingSessionManager {
     return (endTime.getTime() - this.state.startTime.getTime()) / 1000;
   }
 
-  // retreive remaining time in time mode
+  // retreive remaining time in tick-tick mode
   public getRemainingTime(): number {
-    if (this.config.mode !== "time") return 0;
+    if (this.config.mode !== "tick-tick") return 0;
 
     return Math.max(0, this.config.target - this.getElapsedTime());
   }
 
   public getProgress(): number {
     switch (this.config.mode) {
-      case "time":
+      case "tick-tick":
         const elapsed = this.getElapsedTime();
         return Math.min(100, (elapsed / this.config.target) * 100);
 
@@ -322,7 +320,7 @@ export class TypingSessionManager {
         const wordCount = this.state.currentInput.trim().split(/\s+/).length;
         return Math.min(100, (wordCount / this.config.target) * 100);
 
-      case "quote":
+      case "passage":
         return Math.min(
           100,
           (this.state.currentInput.length / this.config.targetText.length) * 100

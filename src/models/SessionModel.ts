@@ -1,11 +1,11 @@
 import { Keystroke } from "./TypingModel";
 
-export type SessionMode = "time" | "words" | "quote";
+export type SessionMode = "tick-tick" | "words" | "passage";
 
 export interface SessionConfig {
   sessionId: string;
   mode: SessionMode;
-  target: number; // seconds for time mode, word count for words (0 for quote mode)
+  target: number; // seconds for tick-tick mode, word count for words (0 for passage mode)
   targetText: string;
 }
 

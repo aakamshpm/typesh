@@ -5,14 +5,14 @@ import { TypingSession } from "../models/TypingModel";
 suite("TypingSessionManager Tests", () => {
   test("should initialize with correct configuration", () => {
     const manager = new TypingSessionManager({
-      mode: "time",
+      mode: "tick-tick",
       target: 60,
       targetText: "The quick brown fox jumps over the lazy dog",
     });
 
     const config = manager.getConfig();
 
-    assert.strictEqual(config.mode, "time", "Mode should be time");
+    assert.strictEqual(config.mode, "tick-tick", "Mode should be tick-tick");
     assert.strictEqual(config.target, 60, "Target should be 60 seconds");
     assert.strictEqual(
       config.targetText,
@@ -29,7 +29,7 @@ suite("TypingSessionManager Tests", () => {
 
   test("should manage session lifecycle correctly", () => {
     const manager = new TypingSessionManager({
-      mode: "time",
+      mode: "tick-tick",
       target: 60,
       targetText: "test",
     });
@@ -79,7 +79,7 @@ suite("TypingSessionManager Tests", () => {
 
   test("should process keystrokes accurately", () => {
     const manager = new TypingSessionManager({
-      mode: "quote",
+      mode: "passage",
       target: 0,
       targetText: "hello",
     });
@@ -126,7 +126,7 @@ suite("TypingSessionManager Tests", () => {
 
   test("should handle backspace correctly", () => {
     const manager = new TypingSessionManager({
-      mode: "quote",
+      mode: "passage",
       target: 0,
       targetText: "test",
     });
@@ -149,10 +149,10 @@ suite("TypingSessionManager Tests", () => {
     assert.strictEqual(state.currentPosition, 2);
   });
 
-  test("should complete session when target is reached in quote mode", () => {
+  test("should complete session when target is reached in passage mode", () => {
     const manager = new TypingSessionManager({
-      mode: "quote",
-      target: 0, // Not used in quote mode
+      mode: "passage",
+      target: 0, // Not used in passage mode
       targetText: "hi", // 2 characters
     });
 
@@ -280,7 +280,7 @@ suite("TypingSessionManager Tests", () => {
 
   test("should calculate progress correctly", () => {
     const quoteManager = new TypingSessionManager({
-      mode: "quote",
+      mode: "passage",
       target: 0,
       targetText: "hello",
     });
@@ -315,7 +315,7 @@ suite("TypingSessionManager Tests", () => {
 
   test("should calculate WPM correctly", () => {
     const manager = new TypingSessionManager({
-      mode: "time",
+      mode: "tick-tick",
       target: 60,
       targetText: "The quick brown fox jumps over the lazy dog.", // ~45 characters
     });
@@ -340,7 +340,7 @@ suite("TypingSessionManager Tests", () => {
 
   test("should handle pause and resume correctly", () => {
     const manager = new TypingSessionManager({
-      mode: "time",
+      mode: "tick-tick",
       target: 60,
       targetText: "test text",
     });
@@ -397,7 +397,7 @@ suite("TypingSessionManager Tests", () => {
 
   test("should handle invalid keystrokes gracefully", () => {
     const manager = new TypingSessionManager({
-      mode: "time",
+      mode: "tick-tick",
       target: 60,
       targetText: "test",
     });
@@ -428,11 +428,11 @@ suite("TypingSessionManager Tests", () => {
     }
   });
 
-  test("should complete session in time mode when timer expires", () => {
+  test("should complete session in tick-tick mode when timer expires", () => {
     const manager = new TypingSessionManager({
-      mode: "time",
+      mode: "tick-tick",
       target: 1, // 1 second for quick test
-      targetText: "This is a test sentence for time mode completion.",
+      targetText: "This is a test sentence for tick-tick mode completion.",
     });
 
     let sessionCompleted = false;
@@ -489,7 +489,7 @@ suite("TypingSessionManager Tests", () => {
     // Test empty target text
     assert.throws(() => {
       new TypingSessionManager({
-        mode: "time",
+        mode: "tick-tick",
         target: 60,
         targetText: "",
       });
@@ -498,7 +498,7 @@ suite("TypingSessionManager Tests", () => {
     // Test whitespace-only target text
     assert.throws(() => {
       new TypingSessionManager({
-        mode: "time",
+        mode: "tick-tick",
         target: 60,
         targetText: "   ",
       });
@@ -524,7 +524,7 @@ suite("TypingSessionManager Tests", () => {
 
     // Valid configurations should work
     const validManager = new TypingSessionManager({
-      mode: "time",
+      mode: "tick-tick",
       target: 30,
       targetText: "Valid text",
     });
@@ -535,14 +535,14 @@ suite("TypingSessionManager Tests", () => {
   });
 
   test("should track elapsed and remaining time correctly", () => {
-    // Test non-time mode first
+    // Test non-tick-tick mode first
     const quoteManager = new TypingSessionManager({
-      mode: "quote",
+      mode: "passage",
       target: 0,
       targetText: "test text",
     });
 
-    // For non-time modes, remaining time should be 0
+    // For non-tick-tick modes, remaining time should be 0
     assert.strictEqual(
       quoteManager.getElapsedTime(),
       0,
@@ -551,17 +551,17 @@ suite("TypingSessionManager Tests", () => {
     assert.strictEqual(
       quoteManager.getRemainingTime(),
       0,
-      "Remaining time should be 0 for non-time mode"
+      "Remaining time should be 0 for non-tick-tick mode"
     );
 
-    // Now test time mode
+    // Now test tick-tick mode
     const timeManager = new TypingSessionManager({
-      mode: "time",
+      mode: "tick-tick",
       target: 10, // 10 seconds
       targetText: "test text",
     });
 
-    // Before starting time mode, elapsed should be 0, remaining should be target (10)
+    // Before starting tick-tick mode, elapsed should be 0, remaining should be target (10)
     assert.strictEqual(
       timeManager.getElapsedTime(),
       0,
@@ -623,7 +623,7 @@ suite("TypingSessionManager Tests", () => {
 
   test("should reset session correctly", () => {
     const manager = new TypingSessionManager({
-      mode: "quote",
+      mode: "passage",
       target: 0,
       targetText: "hello world",
     });
@@ -701,7 +701,7 @@ suite("TypingSessionManager Tests", () => {
 
   test("should handle rapid typing scenarios", () => {
     const manager = new TypingSessionManager({
-      mode: "quote",
+      mode: "passage",
       target: 0,
       targetText: "hello",
     });
@@ -745,7 +745,7 @@ suite("TypingSessionManager Tests", () => {
 
   test("should handle special characters and unicode", () => {
     const manager = new TypingSessionManager({
-      mode: "quote",
+      mode: "passage",
       target: 0,
       targetText: "café 🚀 naïve résumé", // Unicode characters
     });
@@ -779,7 +779,7 @@ suite("TypingSessionManager Tests", () => {
     // Create a very long target text (1000+ characters)
     const longText = "The quick brown fox jumps over the lazy dog. ".repeat(50);
     const manager = new TypingSessionManager({
-      mode: "quote",
+      mode: "passage",
       target: 0,
       targetText: longText,
     });
@@ -848,7 +848,7 @@ suite("TypingSessionManager Tests", () => {
 
   test("should handle complex state transitions", () => {
     const manager = new TypingSessionManager({
-      mode: "time",
+      mode: "tick-tick",
       target: 5, // 5 seconds
       targetText: "test",
     });
@@ -892,7 +892,7 @@ suite("TypingSessionManager Tests", () => {
 
   test("should handle multiple backspaces correctly", () => {
     const manager = new TypingSessionManager({
-      mode: "quote",
+      mode: "passage",
       target: 0,
       targetText: "hello",
     });
@@ -946,7 +946,7 @@ suite("TypingSessionManager Tests", () => {
 
   test("should handle timer expiration edge cases", () => {
     const manager = new TypingSessionManager({
-      mode: "time",
+      mode: "tick-tick",
       target: 1, // 1 second
       targetText: "test",
     });
@@ -991,7 +991,7 @@ suite("TypingSessionManager Tests", () => {
 
   test("should handle memory/performance with many keystrokes", () => {
     const manager = new TypingSessionManager({
-      mode: "quote",
+      mode: "passage",
       target: 0,
       targetText: "a".repeat(1000), // 1000 character target
     });
@@ -1046,7 +1046,7 @@ suite("TypingSessionManager Tests", () => {
 
   test("should handle critical error recovery", () => {
     const manager = new TypingSessionManager({
-      mode: "time",
+      mode: "tick-tick",
       target: 60,
       targetText: "test",
     });
