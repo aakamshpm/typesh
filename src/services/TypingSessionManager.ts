@@ -9,10 +9,13 @@ export class TypingSessionManager {
   private sessionTimer: NodeJS.Timeout | null = null;
   private pausedAt: number | null = null;
   private lastKeystrokeTime: number = 0;
+  private pausedByBlur: boolean = false;
 
   private onSessionEnd?: (session: TypingSession) => void;
   private onProgress?: (state: SessionState) => void;
   private onKeystroke?: (keystroke: Keystroke, state: SessionState) => void;
+  private onFocus?: () => void;
+  private onBlur?: () => void;
 
   constructor(config: Omit<SessionConfig, "sessionId">) {
     this.validateConfig(config);
@@ -63,6 +66,57 @@ export class TypingSessionManager {
     this.onKeystroke = callback;
   }
 
+  public onFocusEvent(callback: () => void): void {
+    this.onFocus = callback;
+  }
+
+  public onBlurEvent(callback: () => void): void {
+    this.onBlur = callback;
+  }
+
+  public handleFocus(): void {
+    try {
+      if (!this.state.isActive) return;
+
+      console.log("TypingSessionManager: Focus gained, attempting to resume");
+
+      // Only auto-resume if we were paused due to blur
+      if (this.state.isPaused && this.pausedByBlur) {
+        this.state.isPaused = false;
+        this.lastKeystrokeTime = Date.now();
+        this.pausedByBlur = false;
+
+        if (this.config.mode === "tick-tick") this.resumeTimerWithRemaining();
+
+        this.pausedAt = null;
+        this.notifyProgress();
+
+        this.onFocus?.();
+      }
+    } catch (error) {
+      console.error("TypingSessionManager: Error handling focus:", error);
+    }
+  }
+
+  public handleBlur(): void {
+    try {
+      if (!this.state.isActive || this.state.isPaused || this.state.isCompleted)
+        return;
+
+      console.log("TypingSessionManager: Focus lost, pausing session");
+
+      this.state.isPaused = true;
+      this.pausedAt = Date.now();
+      this.pausedByBlur = true;
+      this.clearTimer();
+      this.notifyProgress();
+
+      this.onBlur?.();
+    } catch (error) {
+      console.error("TypingSessionManager: Error handling blur:", error);
+    }
+  }
+
   private validateConfig(config: Omit<SessionConfig, "sessionId">): void {
     if (!config.targetText || config.targetText.trim().length === 0)
       throw new Error("TypingSessionManager: targetText cannot be empty");
@@ -94,6 +148,7 @@ export class TypingSessionManager {
 
     this.state.isPaused = true;
     this.pausedAt = Date.now();
+    this.pausedByBlur = false; // Manual pause
     this.clearTimer();
     this.notifyProgress();
   }
@@ -103,6 +158,7 @@ export class TypingSessionManager {
 
     this.state.isPaused = false;
     this.lastKeystrokeTime = Date.now();
+    this.pausedByBlur = false;
 
     if (this.config.mode === "tick-tick") this.resumeTimerWithRemaining();
 
