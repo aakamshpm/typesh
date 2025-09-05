@@ -14,8 +14,16 @@
   "contributes": {
     "commands": [
       {
-        "command": "typing-speed-tester.helloWorld",
-        "title": "Hello World"
+        "command": "typesh.start",
+        "title": "Start Typing Test"
+      },
+      {
+        "command": "typesh.settings",
+        "title": "Typing Test Settings"
+      },
+      {
+        "command": "typesh.history",
+        "title": "View Typing History"
       }
     ]
   },
