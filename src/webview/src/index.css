@@ -1,0 +1,78 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* VS Code theme variables will be injected */
+  --vscode-font-family: "JetBrains Mono", "Fira Code", "Consolas", monospace;
+  --vscode-font-size: 14px;
+}
+
+body {
+  margin: 0;
+  font-family: var(--vscode-font-family, monospace);
+  font-size: var(--vscode-font-size, 14px);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.typing-text {
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: var(--vscode-editor-font-size, 14px);
+  line-height: var(--vscode-editor-line-height, 1.5);
+}
+
+.text-primary {
+  color: #e2b714;
+}
+.text-correct {
+  color: #22c55e;
+}
+.text-incorrect {
+  color: #ef4444;
+}
+.text-extra {
+  color: #f97316;
+}
+.text-missed {
+  color: #6b7280;
+}
+
+.bg-primary {
+  background-color: #e2b714;
+}
+.bg-correct {
+  background-color: #22c55e;
+}
+.bg-incorrect {
+  background-color: #ef4444;
+}
+
+/* Cursor styles */
+.typing-cursor {
+  @apply border-l-2 border-primary animate-pulse;
+}
+
+/* Character highlighting */
+.char-correct {
+  @apply text-correct;
+}
+
+.char-incorrect {
+  @apply text-incorrect bg-incorrect/20;
+}
+
+.char-extra {
+  @apply text-extra bg-extra/20;
+}
+
+.char-current {
+  @apply bg-primary/30;
+}
+
+.transition-colors {
+  transition-property: color, background-color;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}

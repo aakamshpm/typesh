@@ -14,22 +14,25 @@
   "contributes": {
     "commands": [
       {
-        "command": "typesh.start",
+        "command": "typesh.startTest",
         "title": "Start Typing Test"
-      },
-      {
-        "command": "typesh.settings",
-        "title": "Typing Test Settings"
-      },
-      {
-        "command": "typesh.history",
-        "title": "View Typing History"
       }
-    ]
+    ],
+    "views": {
+      "explorer": [
+        {
+          "id": "typingTest.webview",
+          "name": "Typing Speed Test",
+          "type": "webview"
+        }
+      ]
+    }
   },
   "scripts": {
-    "vscode:prepublish": "npm run compile",
+    "vscode:prepublish": "npm run compile && npm run build-webview",
     "compile": "tsc -p ./",
+    "build-webview": "cd src/webview && npm run build",
+    "dev-webview": "cd src/webview && npm run dev",
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src",
