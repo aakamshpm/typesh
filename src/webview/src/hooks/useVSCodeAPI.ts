@@ -1,12 +1,12 @@
 import { useCallback, useState } from "react";
-import { SessionConfig } from "../../../models/SessionModel";
 import {
   CustomParagraph,
   ExtensionSettings,
+  SessionConfig,
+  SessionState,
   TypingSession,
   TypingStats,
-} from "../../../models/TypingModel";
-import { SessionState } from "http2";
+} from "../types";
 
 interface VSCodeAPI {
   postMessage: (message: any) => void;
