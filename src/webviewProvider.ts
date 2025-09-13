@@ -126,7 +126,13 @@ export class TypeshWebViewProvider implements vscode.WebviewViewProvider {
     }
   }
 
-  private async handleGetParagraphs(): Promise<void> {}
+  private async handleGetParagraphs(): Promise<void> {
+    const paragraphs = await this.storageService.getCustomParagraphs();
+    this.sendMessage({
+      type: "paragraphsLoaded",
+      payload: paragraphs,
+    });
+  }
 
   private async handleStartSession(
     sessionConfig: SessionConfig
