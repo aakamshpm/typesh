@@ -158,7 +158,14 @@ export class TypeshWebViewProvider implements vscode.WebviewViewProvider {
     paragraph: CustomParagraph
   ): Promise<void> {}
 
-  private async handleDeleteParagraph(id: string): Promise<void> {}
+  private async handleDeleteParagraph(id: string): Promise<void> {
+    const deleted = await this.storageService.deleteCustomParagraph(id);
 
+    if (!deleted) {
+      throw new Error("Failed to delete paragraph");
+    }
+
+    await this.handleGetParagraphs();
+  }
   private sendMessage(message: ExtensionMessage): void {}
 }
